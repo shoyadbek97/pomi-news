@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin panel — TEZKOR24</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          paper: '#EAEDF0', ink: '#0F172A', ink2: '#4B5567',
+          signal: '#E23F26', amber: '#F2A93B', teal: '#146B5F',
+        },
+        fontFamily: {
+          display: ['Fraunces', 'serif'],
+          body: ['Inter', 'sans-serif'],
+          mono: ['"IBM Plex Mono"', 'monospace'],
+        },
+      },
+    },
+  };
+</script>
+</head>
+<body class="bg-paper text-ink font-body min-h-screen">
+
+<header class="border-b border-ink/10 bg-white">
+  <div class="max-w-4xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+    <div class="font-display font-black text-xl">TEZKOR<span class="text-signal">24</span> <span class="text-sm font-body font-medium text-ink2">/ admin</span></div>
+    <button id="logout-btn" class="hidden text-sm font-medium text-ink2 hover:text-signal transition">Chiqish</button>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 md:px-6 py-8">
+
+  <!-- ============ LOGIN VIEW ============ -->
+  <div id="login-view" class="max-w-sm mx-auto mt-10">
+    <h1 class="font-display font-bold text-2xl mb-1">Kirish</h1>
+    <p class="text-sm text-ink2 mb-6">Yangilik qo'shish uchun tizimga kiring.</p>
+    <form id="login-form" class="space-y-3">
+      <input id="login-email" type="email" required placeholder="Email" class="w-full px-4 py-3 rounded-xl border border-ink/15 outline-none focus:border-signal transition">
+      <input id="login-password" type="password" required placeholder="Parol" class="w-full px-4 py-3 rounded-xl border border-ink/15 outline-none focus:border-signal transition">
+      <button type="submit" class="w-full bg-ink text-white font-semibold py-3 rounded-xl hover:bg-signal transition">Kirish</button>
+      <p id="login-error" class="text-signal text-sm hidden"></p>
+    </form>
+  </div>
+
+  <!-- ============ ADMIN VIEW ============ -->
+  <div id="admin-view" class="hidden">
+
+    <!-- Add / Edit form -->
+    <section class="bg-white rounded-2xl border border-ink/10 p-5 md:p-6 mb-8">
+      <h2 id="form-title" class="font-display font-bold text-xl mb-4">Yangi yangilik qo'shish</h2>
+      <form id="article-form" class="space-y-4">
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Sarlavha</label>
+          <input id="f-title" type="text" required class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Kategoriya</label>
+            <select id="f-category" required class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition bg-white">
+              <option>Jamiyat</option>
+              <option>Siyosat</option>
+              <option>Iqtisodiyot</option>
+              <option>Sport</option>
+              <option>Texnologiya</option>
+              <option>Shou-biznes</option>
+              <option>Dunyo</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Muallif</label>
+            <input id="f-author" type="text" placeholder="Masalan: N. Qodirov" class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition">
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Qisqacha mazmuni</label>
+          <textarea id="f-excerpt" rows="3" class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition"></textarea>
+        </div>
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Rasm manzili (URL)</label>
+          <input id="f-image" type="url" placeholder="https://..." class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition">
+          <p class="text-xs text-ink2 mt-1">Bo'sh qoldirsangiz, avtomatik rasm qo'yiladi.</p>
+        </div>
+        <label class="flex items-center gap-2 text-sm">
+          <input id="f-featured" type="checkbox" class="w-4 h-4 rounded border-ink/30">
+          Bosh sahifada katta blok sifatida ko'rsatish
+        </label>
+        <div class="flex items-center gap-3 pt-2">
+          <button type="submit" id="submit-btn" class="bg-signal text-white font-semibold px-5 py-2.5 rounded-lg hover:bg-ink transition">Saqlash</button>
+          <button type="button" id="cancel-edit-btn" class="hidden text-sm text-ink2 hover:text-signal transition">Bekor qilish</button>
+          <span id="form-status" class="text-sm text-teal"></span>
+        </div>
+      </form>
+    </section>
+
+    <!-- Article list -->
+    <section>
+      <h2 class="font-display font-bold text-xl mb-4">Barcha yangiliklar</h2>
+      <div id="article-list" class="space-y-3">
+        <p class="text-ink2 text-sm">Yuklanmoqda...</p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+  const loginView = document.getElementById('login-view');
+  const adminView = document.getElementById('admin-view');
+  const logoutBtn = document.getElementById('logout-btn');
+  let editingId = null;
+
+  // ---------- Auth ----------
+  async function checkSession() {
+    const { data } = await sb.auth.getSession();
+    if (data.session) {
+      showAdmin();
+    } else {
+      showLogin();
+    }
+  }
+  function showLogin() {
+    loginView.classList.remove('hidden');
+    adminView.classList.add('hidden');
+    logoutBtn.classList.add('hidden');
+  }
+  function showAdmin() {
+    loginView.classList.add('hidden');
+    adminView.classList.remove('hidden');
+    logoutBtn.classList.remove('hidden');
+    loadArticles();
+  }
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    errEl.classList.add('hidden');
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      errEl.textContent = "Email yoki parol noto'g'ri.";
+      errEl.classList.remove('hidden');
+      return;
+    }
+    showAdmin();
+  });
+
+  logoutBtn.addEventListener('click', async () => {
+    await sb.auth.signOut();
+    showLogin();
+  });
+
+  // ---------- Form ----------
+  const form = document.getElementById('article-form');
+  const formTitle = document.getElementById('form-title');
+  const submitBtn = document.getElementById('submit-btn');
+  const cancelBtn = document.getElementById('cancel-edit-btn');
+  const statusEl = document.getElementById('form-status');
+
+  function resetForm() {
+    form.reset();
+    editingId = null;
+    formTitle.textContent = "Yangi yangilik qo'shish";
+    submitBtn.textContent = "Saqlash";
+    cancelBtn.classList.add('hidden');
+  }
+
+  cancelBtn.addEventListener('click', resetForm);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.textContent = '';
+
+    const payload = {
+      title: document.getElementById('f-title').value.trim(),
+      category: document.getElementById('f-category').value,
+      author: document.getElementById('f-author').value.trim(),
+      excerpt: document.getElementById('f-excerpt').value.trim(),
+      image_url: document.getElementById('f-image').value.trim() || null,
+      featured: document.getElementById('f-featured').checked,
+    };
+
+    let error;
+    if (editingId) {
+      ({ error } = await sb.from('articles').update(payload).eq('id', editingId));
+    } else {
+      ({ error } = await sb.from('articles').insert(payload));
+    }
+
+    if (error) {
+      statusEl.classList.remove('text-teal');
+      statusEl.classList.add('text-signal');
+      statusEl.textContent = "Xatolik: " + error.message;
+      return;
+    }
+
+    statusEl.classList.remove('text-signal');
+    statusEl.classList.add('text-teal');
+    statusEl.textContent = "Saqlandi ✓";
+    resetForm();
+    loadArticles();
+    setTimeout(() => { statusEl.textContent = ''; }, 2500);
+  });
+
+  // ---------- List ----------
+  async function loadArticles() {
+    const listEl = document.getElementById('article-list');
+    const { data, error } = await sb
+      .from('articles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      listEl.innerHTML = `<p class="text-signal text-sm">Xatolik: ${error.message}</p>`;
+      return;
+    }
+    if (!data || data.length === 0) {
+      listEl.innerHTML = `<p class="text-ink2 text-sm">Hali yangiliklar yo'q. Yuqoridagi shakl orqali birinchisini qo'shing.</p>`;
+      return;
+    }
+
+    listEl.innerHTML = '';
+    data.forEach((a) => {
+      const row = document.createElement('div');
+      row.className = 'bg-white rounded-xl border border-ink/10 p-4 flex items-center justify-between gap-4';
+      row.innerHTML = `
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] font-bold uppercase tracking-wide text-teal">${a.category}</span>
+            ${a.featured ? '<span class="text-[10px] bg-signal text-white px-1.5 py-0.5 rounded-full">bosh sahifa</span>' : ''}
+          </div>
+          <p class="font-display font-semibold truncate">${a.title}</p>
+          <p class="text-xs text-ink2 font-mono">${new Date(a.created_at).toLocaleString('uz-UZ')}</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button data-id="${a.id}" class="edit-btn text-sm font-medium text-ink2 hover:text-signal transition px-2 py-1">Tahrirlash</button>
+          <button data-id="${a.id}" class="delete-btn text-sm font-medium text-signal hover:text-ink transition px-2 py-1">O'chirish</button>
+        </div>
+      `;
+      listEl.appendChild(row);
+
+      row.querySelector('.edit-btn').addEventListener('click', () => startEdit(a));
+      row.querySelector('.delete-btn').addEventListener('click', () => deleteArticle(a.id));
+    });
+  }
+
+  function startEdit(a) {
+    editingId = a.id;
+    document.getElementById('f-title').value = a.title;
+    document.getElementById('f-category').value = a.category;
+    document.getElementById('f-author').value = a.author || '';
+    document.getElementById('f-excerpt').value = a.excerpt || '';
+    document.getElementById('f-image').value = a.image_url || '';
+    document.getElementById('f-featured').checked = !!a.featured;
+    formTitle.textContent = "Yangilikni tahrirlash";
+    submitBtn.textContent = "Yangilash";
+    cancelBtn.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function deleteArticle(id) {
+    if (!confirm("Ushbu yangilikni o'chirmoqchimisiz?")) return;
+    const { error } = await sb.from('articles').delete().eq('id', id);
+    if (error) { alert("Xatolik: " + error.message); return; }
+    loadArticles();
+  }
+
+  checkSession();
+</script>
+</body>
+</html>
