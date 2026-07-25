@@ -619,6 +619,47 @@
     if (e.key === 'ArrowRight') document.getElementById('lightbox-next').click();
   });
 </script>
+<!-- Yangiliklar ko'rinadigan konteyner -->
+<div id="mainNewsContainer">Yuklanmoqda...</div>
+
+<!-- Supabase Kutubxonasi va Skript -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const SUPABASE_URL = "https://dfxxgretrznyflbmgucw.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_kWxbevzzD9E7Cxue8g4Idg_c9-ipmsj";
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function fetchNews() {
+        const container = document.getElementById('mainNewsContainer');
+
+        let { data: news, error } = await _supabase
+            .from('news')
+            .select('*')
+            .order('id', { ascending: false });
+
+        if (error) {
+            container.innerHTML = "<p>Yangiliklarni yuklashda xatolik yuz berdi.</p>";
+            return;
+        }
+
+        if(!news || news.length === 0) {
+            container.innerHTML = "<p style='text-align:center;'>Hozircha yangiliklar yo'q.</p>";
+            return;
+        }
+
+        container.innerHTML = news.map(item => `
+            <article style="background: white; border-radius: 12px; overflow: hidden; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                ${item.image ? `<img src="${item.image}" style="width: 100%; max-height: 350px; object-fit: cover;">` : ''}
+                <div style="padding: 20px;">
+                    <h2 style="margin-top: 0; color: #0f172a;">${item.title}</h2>
+                    <p style="color: #334155; line-height: 1.6; white-space: pre-line;">${item.text}</p>
+                </div>
+            </article>
+        `).join('');
+    }
+
+    fetchNews();
+</script>
 
 </body>
 </html>
