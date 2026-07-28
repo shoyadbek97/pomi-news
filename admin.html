@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin panel — Pomi.uz</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          paper: '#EAEDF0', ink: '#0F172A', ink2: '#4B5567',
+          signal: '#E23F26', amber: '#F2A93B', teal: '#146B5F',
+        },
+        fontFamily: {
+          display: ['Fraunces', 'serif'],
+          body: ['Inter', 'sans-serif'],
+          mono: ['"IBM Plex Mono"', 'monospace'],
+        },
+      },
+    },
+  };
+</script>
+</head>
+<body class="bg-paper text-ink font-body min-h-screen">
+
+<header class="border-b border-ink/10 bg-white sticky top-0 z-10">
+  <div class="max-w-4xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+    <div class="font-display font-black text-xl">POMI<span class="text-signal">.UZ</span> <span class="text-sm font-body font-medium text-ink2">/ admin</span></div>
+    <button id="logout-btn" class="hidden text-sm font-medium text-ink2 hover:text-signal transition">Chiqish</button>
+  </div>
+  <nav id="tab-nav" class="hidden max-w-4xl mx-auto px-4 md:px-6 flex items-center gap-1 pb-2 text-sm font-medium overflow-x-auto scrollbar-hide">
+    <button data-tab="articles" class="tab-btn px-3 py-1.5 rounded-full bg-ink text-white shrink-0">Yangiliklar</button>
+    <button data-tab="videos" class="tab-btn px-3 py-1.5 rounded-full hover:bg-ink/5 shrink-0">Videolar</button>
+    <button data-tab="photos" class="tab-btn px-3 py-1.5 rounded-full hover:bg-ink/5 shrink-0">Fotoreportaj</button>
+    <button data-tab="ai" class="tab-btn px-3 py-1.5 rounded-full hover:bg-ink/5 shrink-0 flex items-center gap-1.5">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-signal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 8v4l3 3"/></svg>
+      AI Yordamchi
+    </button>
+  </nav>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 md:px-6 py-8">
+
+  <!-- ============ LOGIN VIEW ============ -->
+  <div id="login-view" class="max-w-sm mx-auto mt-10">
+    <h1 class="font-display font-bold text-2xl mb-1">Kirish</h1>
+    <p class="text-sm text-ink2 mb-6">Yangilik qo'shish uchun tizimga kiring.</p>
+    <form id="login-form" class="space-y-3">
+      <input id="login-email" type="email" required placeholder="Email" class="w-full px-4 py-3 rounded-xl border border-ink/15 outline-none focus:border-signal transition">
+      <input id="login-password" type="password" required placeholder="Parol" class="w-full px-4 py-3 rounded-xl border border-ink/15 outline-none focus:border-signal transition">
+      <button type="submit" class="w-full bg-ink text-white font-semibold py-3 rounded-xl hover:bg-signal transition">Kirish</button>
+      <p id="login-error" class="text-signal text-sm hidden"></p>
+    </form>
+  </div>
+
+  <!-- ============ AI PANEL ============ -->
+  <div id="panel-ai" class="admin-panel hidden">
+    <div class="bg-gradient-to-br from-signal/5 to-teal/5 border border-signal/20 rounded-2xl p-5 md:p-6 mb-6">
+      <div class="flex items-center gap-2 mb-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-signal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 8v4l3 3"/></svg>
+        <h2 class="font-display font-bold text-xl">AI Yordamchi</h2>
+      </div>
+      <p class="text-sm text-ink2">Chet el maqolasi matnini yoki havolasini yoping — AI uni o'zbek tiliga o'girib, Pomi.uz uslubida maqola tayyorlaydi.</p>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-ink/10 p-5 md:p-6 mb-6">
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Maqola havolasi (URL)</label>
+          <input id="ai-source" type="url" placeholder="https://bbc.com/news/... yoki https://reuters.com/..." class="mt-1 w-full px-4 py-3 rounded-lg border border-ink/15 outline-none focus:border-signal transition text-sm">
+          <p class="text-xs text-ink2 mt-1">BBC, Reuters, CNN, Al Jazeera, RIA Novosti va boshqa saytlar havolasini yozing</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Manba nomi</label>
+            <input id="ai-source-name" type="text" placeholder="BBC, Reuters, CNN..." class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition">
+          </div>
+          <div>
+            <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Maqola turi</label>
+            <select id="ai-style" class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition bg-white">
+              <option value="news">Qisqa yangilik (tezkor xabar)</option>
+              <option value="full">To'liq maqola</option>
+              <option value="showbiz">Shou-biznes xabari</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="ai-generate-btn" class="flex items-center gap-2 bg-signal text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-ink transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Maqola yaratish
+          </button>
+          <span id="ai-status" class="text-sm text-ink2"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Result -->
+    <div id="ai-result" class="hidden bg-white rounded-2xl border border-teal/30 p-5 md:p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-display font-bold text-lg flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-teal"></span>
+          Tayyor maqola
+        </h3>
+        <button id="ai-use-btn" class="flex items-center gap-2 bg-teal text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-ink transition">
+          Yangiliklar bo'limiga o'tkazish
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <p class="text-[11px] font-bold uppercase tracking-wide text-ink2 mb-1">Rasm</p>
+          <img id="ai-res-image" src="" alt="" class="hidden w-full h-48 object-cover rounded-lg mb-2">
+          <div class="flex gap-2">
+            <input id="ai-res-image-url" type="url" class="flex-1 px-3 py-2 rounded-lg border border-ink/15 text-xs outline-none focus:border-signal" placeholder="Rasm URL...">
+            <button id="ai-new-image-btn" type="button" class="shrink-0 px-3 py-2 rounded-lg border border-ink/15 text-xs hover:bg-ink/5 transition">Boshqa rasm</button>
+          </div>
+        </div>
+        <div>
+          <p class="text-[11px] font-bold uppercase tracking-wide text-ink2 mb-1">Sarlavha</p>
+          <p id="ai-res-title" class="font-display font-semibold text-lg border border-ink/10 rounded-lg px-3 py-2"></p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-ink2 mb-1">Kategoriya</p>
+            <p id="ai-res-category" class="text-sm border border-ink/10 rounded-lg px-3 py-2"></p>
+          </div>
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-ink2 mb-1">Manba</p>
+            <p id="ai-res-source" class="text-sm border border-ink/10 rounded-lg px-3 py-2"></p>
+          </div>
+        </div>
+        <div>
+          <p class="text-[11px] font-bold uppercase tracking-wide text-ink2 mb-1">Qisqacha mazmun</p>
+          <p id="ai-res-excerpt" class="text-sm border border-ink/10 rounded-lg px-3 py-2 leading-relaxed"></p>
+        </div>
+        <div>
+          <p class="text-[11px] font-bold uppercase tracking-wide text-ink2 mb-1">To'liq matn</p>
+          <div id="ai-res-content" class="text-sm border border-ink/10 rounded-lg px-3 py-2 leading-relaxed max-h-64 overflow-y-auto whitespace-pre-wrap"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ARTICLES PANEL ============ -->
+  <div id="panel-articles" class="admin-panel hidden">
+    <section class="bg-white rounded-2xl border border-ink/10 p-5 md:p-6 mb-8">
+      <h2 id="article-form-title" class="font-display font-bold text-xl mb-4">Yangi yangilik qo'shish</h2>
+      <form id="article-form" class="space-y-4">
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Sarlavha</label>
+          <input id="a-title" type="text" required class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Kategoriya</label>
+            <select id="a-category" required class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition bg-white">
+              <option>Jamiyat</option><option>Siyosat</option><option>Iqtisodiyot</option>
+              <option>Sport</option><option>Texnologiya</option><option>Shou-biznes</option><option>Dunyo</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Muallif</label>
+            <input id="a-author" type="text" placeholder="Masalan: N. Qodirov" class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition">
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Qisqacha mazmuni</label>
+          <textarea id="a-excerpt" rows="3" class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition"></textarea>
+        </div>
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-ink2">To'liq matn</label>
+          <textarea id="a-content" rows="12" placeholder="Yangilik to'liq matnini shu yerga yozing..." class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition text-sm leading-relaxed"></textarea>
+        </div>
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Rasm</label>
+          <div class="mt-1 flex flex-col sm:flex-row gap-2">
+            <input id="a-image" type="url" placeholder="https://... (yoki quyidan fayl tanlang)" class="flex-1 px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition">
+            <label class="shrink-0 px-4 py-2.5 rounded-lg border border-ink/15 text-sm font-medium text-center cursor-pointer hover:bg-ink/5 transition">
+              Fayl tanlash
+              <input id="a-image-file" type="file" accept="image/*" class="hidden">
+            </label>
+          </div>
+          <p class="text-xs text-ink2 mt-1">Bo'sh qoldirsangiz, avtomatik rasm qo'yiladi. <span id="a-image-status"></span></p>
+        </div>
+        <label class="flex items-center gap-2 text-sm">
+          <input id="a-featured" type="checkbox" class="w-4 h-4 rounded border-ink/30">
+          Bosh sahifada katta blok sifatida ko'rsatish
+        </label>
+        <div class="flex items-center gap-3 pt-2">
+          <button type="submit" id="article-submit-btn" class="bg-signal text-white font-semibold px-5 py-2.5 rounded-lg hover:bg-ink transition">Saqlash</button>
+          <button type="button" id="article-cancel-btn" class="hidden text-sm text-ink2 hover:text-signal transition">Bekor qilish</button>
+          <span id="article-status" class="text-sm text-teal"></span>
+        </div>
+      </form>
+    </section>
+    <section>
+      <h2 class="font-display font-bold text-xl mb-4">Barcha yangiliklar</h2>
+      <div id="article-list" class="space-y-3"><p class="text-ink2 text-sm">Yuklanmoqda...</p></div>
+    </section>
+  </div>
+
+  <!-- ============ VIDEOS PANEL ============ -->
+  <div id="panel-videos" class="admin-panel hidden">
+    <section class="bg-white rounded-2xl border border-ink/10 p-5 md:p-6 mb-8">
+      <h2 id="video-form-title" class="font-display font-bold text-xl mb-4">Yangi video qo'shish</h2>
+      <form id="video-form" class="space-y-4">
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Sarlavha</label>
+          <input id="v-title" type="text" required class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition">
+        </div>
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Rasm (thumbnail)</label>
+          <div class="mt-1 flex flex-col sm:flex-row gap-2">
+            <input id="v-thumb" type="url" required placeholder="https://... (yoki quyidan fayl tanlang)" class="flex-1 px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition">
+            <label class="shrink-0 px-4 py-2.5 rounded-lg border border-ink/15 text-sm font-medium text-center cursor-pointer hover:bg-ink/5 transition">
+              Fayl tanlash
+              <input id="v-thumb-file" type="file" accept="image/*" class="hidden">
+            </label>
+          </div>
+          <p class="text-xs text-ink2 mt-1"><span id="v-thumb-status"></span></p>
+        </div>
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Video havolasi (ixtiyoriy)</label>
+          <input id="v-link" type="url" placeholder="YouTube, Instagram yoki boshqa havola" class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Davomiyligi</label>
+            <input id="v-duration" type="text" placeholder="0:34" class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition">
+          </div>
+          <div>
+            <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Ko'rishlar soni</label>
+            <input id="v-views" type="text" placeholder="102 ming ko'rish" class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition">
+          </div>
+        </div>
+        <div class="flex items-center gap-3 pt-2">
+          <button type="submit" id="video-submit-btn" class="bg-signal text-white font-semibold px-5 py-2.5 rounded-lg hover:bg-ink transition">Saqlash</button>
+          <button type="button" id="video-cancel-btn" class="hidden text-sm text-ink2 hover:text-signal transition">Bekor qilish</button>
+          <span id="video-status" class="text-sm text-teal"></span>
+        </div>
+      </form>
+    </section>
+    <section>
+      <h2 class="font-display font-bold text-xl mb-4">Barcha videolar</h2>
+      <div id="video-list" class="space-y-3"><p class="text-ink2 text-sm">Yuklanmoqda...</p></div>
+    </section>
+  </div>
+
+  <!-- ============ PHOTOS PANEL ============ -->
+  <div id="panel-photos" class="admin-panel hidden">
+    <section class="bg-white rounded-2xl border border-ink/10 p-5 md:p-6 mb-8">
+      <h2 id="photo-form-title" class="font-display font-bold text-xl mb-4">Yangi fotoreportaj qo'shish</h2>
+      <form id="photo-form" class="space-y-4">
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Sarlavha</label>
+          <input id="p-title" type="text" required class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition">
+        </div>
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-ink2">Rasm manzillari</label>
+          <textarea id="p-images" rows="5" required placeholder="Har bir qatorga bitta rasm URL manzilini yozing.&#10;Birinchi qator asosiy (muqova) rasm bo'ladi." class="mt-1 w-full px-4 py-2.5 rounded-lg border border-ink/15 outline-none focus:border-signal transition font-mono text-sm"></textarea>
+          <label class="mt-2 inline-block px-4 py-2.5 rounded-lg border border-ink/15 text-sm font-medium cursor-pointer hover:bg-ink/5 transition">
+            Fayllar tanlash (bir nechtasini birga tanlash mumkin)
+            <input id="p-images-file" type="file" accept="image/*" multiple class="hidden">
+          </label>
+          <p class="text-xs text-ink2 mt-1">Tanlangan rasmlar yuqoridagi ro'yxatga qator qator qo'shiladi. <span id="p-images-status"></span></p>
+        </div>
+        <div class="flex items-center gap-3 pt-2">
+          <button type="submit" id="photo-submit-btn" class="bg-signal text-white font-semibold px-5 py-2.5 rounded-lg hover:bg-ink transition">Saqlash</button>
+          <button type="button" id="photo-cancel-btn" class="hidden text-sm text-ink2 hover:text-signal transition">Bekor qilish</button>
+          <span id="photo-status" class="text-sm text-teal"></span>
+        </div>
+      </form>
+    </section>
+    <section>
+      <h2 class="font-display font-bold text-xl mb-4">Barcha fotoreportajlar</h2>
+      <div id="photo-list" class="space-y-3"><p class="text-ink2 text-sm">Yuklanmoqda...</p></div>
+    </section>
+  </div>
+
+</main>
+
+<script>
+  const loginView = document.getElementById('login-view');
+  const tabNav = document.getElementById('tab-nav');
+  const logoutBtn = document.getElementById('logout-btn');
+  const panels = { articles: document.getElementById('panel-articles'), videos: document.getElementById('panel-videos'), photos: document.getElementById('panel-photos'), ai: document.getElementById('panel-ai') };
+
+  // ---------- Auth ----------
+  async function checkSession() {
+    const { data } = await sb.auth.getSession();
+    if (data.session) { showAdmin(); } else { showLogin(); }
+  }
+  function showLogin() {
+    loginView.classList.remove('hidden');
+    tabNav.classList.add('hidden');
+    logoutBtn.classList.add('hidden');
+    Object.values(panels).forEach(p => p.classList.add('hidden'));
+  }
+  function showAdmin() {
+    loginView.classList.add('hidden');
+    tabNav.classList.remove('hidden');
+    logoutBtn.classList.remove('hidden');
+    switchTab('articles');
+    loadArticles(); loadVideos(); loadPhotos();
+  }
+  function switchTab(tab) {
+    Object.entries(panels).forEach(([key, el]) => el.classList.toggle('hidden', key !== tab));
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      const active = btn.dataset.tab === tab;
+      btn.classList.toggle('bg-ink', active);
+      btn.classList.toggle('text-white', active);
+      btn.classList.toggle('hover:bg-ink/5', !active);
+    });
+  }
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    errEl.classList.add('hidden');
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) { errEl.textContent = "Email yoki parol noto'g'ri."; errEl.classList.remove('hidden'); return; }
+    showAdmin();
+  });
+  logoutBtn.addEventListener('click', async () => { await sb.auth.signOut(); showLogin(); });
+
+  // ================= ARTICLES =================
+  let editingArticleId = null;
+  const articleForm = document.getElementById('article-form');
+  function resetArticleForm() {
+    articleForm.reset(); editingArticleId = null;
+    document.getElementById('article-form-title').textContent = "Yangi yangilik qo'shish";
+    document.getElementById('article-submit-btn').textContent = "Saqlash";
+    document.getElementById('article-cancel-btn').classList.add('hidden');
+  }
+  document.getElementById('article-cancel-btn').addEventListener('click', resetArticleForm);
+  articleForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const statusEl = document.getElementById('article-status');
+    statusEl.textContent = '';
+    const payload = {
+      title: document.getElementById('a-title').value.trim(),
+      category: document.getElementById('a-category').value,
+      author: document.getElementById('a-author').value.trim(),
+      excerpt: document.getElementById('a-excerpt').value.trim(),
+      content: document.getElementById('a-content').value.trim(),
+      image_url: document.getElementById('a-image').value.trim() || null,
+      featured: document.getElementById('a-featured').checked,
+    };
+    let error;
+    if (editingArticleId) { ({ error } = await sb.from('articles').update(payload).eq('id', editingArticleId)); }
+    else { ({ error } = await sb.from('articles').insert(payload)); }
+    if (error) { statusEl.className = 'text-sm text-signal'; statusEl.textContent = "Xatolik: " + error.message; return; }
+    statusEl.className = 'text-sm text-teal'; statusEl.textContent = "Saqlandi ✓";
+    resetArticleForm(); loadArticles();
+    setTimeout(() => { statusEl.textContent = ''; }, 2500);
+  });
+  async function loadArticles() {
+    const listEl = document.getElementById('article-list');
+    const { data, error } = await sb.from('articles').select('*').order('created_at', { ascending: false });
+    if (error) { listEl.innerHTML = `<p class="text-signal text-sm">Xatolik: ${error.message}</p>`; return; }
+    if (!data || data.length === 0) { listEl.innerHTML = `<p class="text-ink2 text-sm">Hali yangiliklar yo'q.</p>`; return; }
+    listEl.innerHTML = '';
+    data.forEach((a) => {
+      const row = document.createElement('div');
+      row.className = 'bg-white rounded-xl border border-ink/10 p-4 flex items-center justify-between gap-4';
+      row.innerHTML = `
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] font-bold uppercase tracking-wide text-teal">${a.category}</span>
+            ${a.featured ? '<span class="text-[10px] bg-signal text-white px-1.5 py-0.5 rounded-full">bosh sahifa</span>' : ''}
+          </div>
+          <p class="font-display font-semibold truncate">${a.title}</p>
+          <p class="text-xs text-ink2 font-mono">${new Date(a.created_at).toLocaleString('uz-UZ')}</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button data-id="${a.id}" class="edit-btn text-sm font-medium text-ink2 hover:text-signal transition px-2 py-1">Tahrirlash</button>
+          <button data-id="${a.id}" class="delete-btn text-sm font-medium text-signal hover:text-ink transition px-2 py-1">O'chirish</button>
+        </div>`;
+      listEl.appendChild(row);
+      row.querySelector('.edit-btn').addEventListener('click', () => {
+        editingArticleId = a.id;
+        document.getElementById('a-title').value = a.title;
+        document.getElementById('a-category').value = a.category;
+        document.getElementById('a-author').value = a.author || '';
+        document.getElementById('a-excerpt').value = a.excerpt || '';
+        document.getElementById('a-content').value = a.content || '';
+        document.getElementById('a-image').value = a.image_url || '';
+        document.getElementById('a-featured').checked = !!a.featured;
+        document.getElementById('article-form-title').textContent = "Yangilikni tahrirlash";
+        document.getElementById('article-submit-btn').textContent = "Yangilash";
+        document.getElementById('article-cancel-btn').classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      row.querySelector('.delete-btn').addEventListener('click', async () => {
+        if (!confirm("Ushbu yangilikni o'chirmoqchimisiz?")) return;
+        const { error } = await sb.from('articles').delete().eq('id', a.id);
+        if (error) { alert("Xatolik: " + error.message); return; }
+        loadArticles();
+      });
+    });
+  }
+
+  // ================= VIDEOS =================
+  let editingVideoId = null;
+  const videoForm = document.getElementById('video-form');
+  function resetVideoForm() {
+    videoForm.reset(); editingVideoId = null;
+    document.getElementById('video-form-title').textContent = "Yangi video qo'shish";
+    document.getElementById('video-submit-btn').textContent = "Saqlash";
+    document.getElementById('video-cancel-btn').classList.add('hidden');
+  }
+  document.getElementById('video-cancel-btn').addEventListener('click', resetVideoForm);
+  videoForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const statusEl = document.getElementById('video-status');
+    statusEl.textContent = '';
+    const payload = {
+      title: document.getElementById('v-title').value.trim(),
+      thumbnail_url: document.getElementById('v-thumb').value.trim(),
+      video_url: document.getElementById('v-link').value.trim() || null,
+      duration: document.getElementById('v-duration').value.trim() || null,
+      views: document.getElementById('v-views').value.trim() || null,
+    };
+    let error;
+    if (editingVideoId) { ({ error } = await sb.from('videos').update(payload).eq('id', editingVideoId)); }
+    else { ({ error } = await sb.from('videos').insert(payload)); }
+    if (error) { statusEl.className = 'text-sm text-signal'; statusEl.textContent = "Xatolik: " + error.message; return; }
+    statusEl.className = 'text-sm text-teal'; statusEl.textContent = "Saqlandi ✓";
+    resetVideoForm(); loadVideos();
+    setTimeout(() => { statusEl.textContent = ''; }, 2500);
+  });
+  async function loadVideos() {
+    const listEl = document.getElementById('video-list');
+    const { data, error } = await sb.from('videos').select('*').order('created_at', { ascending: false });
+    if (error) { listEl.innerHTML = `<p class="text-signal text-sm">Xatolik: ${error.message}</p>`; return; }
+    if (!data || data.length === 0) { listEl.innerHTML = `<p class="text-ink2 text-sm">Hali videolar yo'q.</p>`; return; }
+    listEl.innerHTML = '';
+    data.forEach((v) => {
+      const row = document.createElement('div');
+      row.className = 'bg-white rounded-xl border border-ink/10 p-4 flex items-center justify-between gap-4';
+      row.innerHTML = `
+        <div class="min-w-0">
+          <p class="font-display font-semibold truncate">${v.title}</p>
+          <p class="text-xs text-ink2 font-mono">${v.duration || ''} ${v.views ? '· ' + v.views : ''}</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button data-id="${v.id}" class="edit-btn text-sm font-medium text-ink2 hover:text-signal transition px-2 py-1">Tahrirlash</button>
+          <button data-id="${v.id}" class="delete-btn text-sm font-medium text-signal hover:text-ink transition px-2 py-1">O'chirish</button>
+        </div>`;
+      listEl.appendChild(row);
+      row.querySelector('.edit-btn').addEventListener('click', () => {
+        editingVideoId = v.id;
+        document.getElementById('v-title').value = v.title;
+        document.getElementById('v-thumb').value = v.thumbnail_url || '';
+        document.getElementById('v-link').value = v.video_url || '';
+        document.getElementById('v-duration').value = v.duration || '';
+        document.getElementById('v-views').value = v.views || '';
+        document.getElementById('video-form-title').textContent = "Videoni tahrirlash";
+        document.getElementById('video-submit-btn').textContent = "Yangilash";
+        document.getElementById('video-cancel-btn').classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      row.querySelector('.delete-btn').addEventListener('click', async () => {
+        if (!confirm("Ushbu videoni o'chirmoqchimisiz?")) return;
+        const { error } = await sb.from('videos').delete().eq('id', v.id);
+        if (error) { alert("Xatolik: " + error.message); return; }
+        loadVideos();
+      });
+    });
+  }
+
+  // ================= PHOTO REPORTS =================
+  let editingPhotoId = null;
+  const photoForm = document.getElementById('photo-form');
+  function resetPhotoForm() {
+    photoForm.reset(); editingPhotoId = null;
+    document.getElementById('photo-form-title').textContent = "Yangi fotoreportaj qo'shish";
+    document.getElementById('photo-submit-btn').textContent = "Saqlash";
+    document.getElementById('photo-cancel-btn').classList.add('hidden');
+  }
+  document.getElementById('photo-cancel-btn').addEventListener('click', resetPhotoForm);
+  photoForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const statusEl = document.getElementById('photo-status');
+    statusEl.textContent = '';
+    const payload = {
+      title: document.getElementById('p-title').value.trim(),
+      images: document.getElementById('p-images').value.trim(),
+    };
+    let error;
+    if (editingPhotoId) { ({ error } = await sb.from('photo_reports').update(payload).eq('id', editingPhotoId)); }
+    else { ({ error } = await sb.from('photo_reports').insert(payload)); }
+    if (error) { statusEl.className = 'text-sm text-signal'; statusEl.textContent = "Xatolik: " + error.message; return; }
+    statusEl.className = 'text-sm text-teal'; statusEl.textContent = "Saqlandi ✓";
+    resetPhotoForm(); loadPhotos();
+    setTimeout(() => { statusEl.textContent = ''; }, 2500);
+  });
+  async function loadPhotos() {
+    const listEl = document.getElementById('photo-list');
+    const { data, error } = await sb.from('photo_reports').select('*').order('created_at', { ascending: false });
+    if (error) { listEl.innerHTML = `<p class="text-signal text-sm">Xatolik: ${error.message}</p>`; return; }
+    if (!data || data.length === 0) { listEl.innerHTML = `<p class="text-ink2 text-sm">Hali fotoreportajlar yo'q.</p>`; return; }
+    listEl.innerHTML = '';
+    data.forEach((p) => {
+      const count = p.images.split('\n').map(s => s.trim()).filter(Boolean).length;
+      const row = document.createElement('div');
+      row.className = 'bg-white rounded-xl border border-ink/10 p-4 flex items-center justify-between gap-4';
+      row.innerHTML = `
+        <div class="min-w-0">
+          <p class="font-display font-semibold truncate">${p.title}</p>
+          <p class="text-xs text-ink2 font-mono">${count} ta rasm</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button data-id="${p.id}" class="edit-btn text-sm font-medium text-ink2 hover:text-signal transition px-2 py-1">Tahrirlash</button>
+          <button data-id="${p.id}" class="delete-btn text-sm font-medium text-signal hover:text-ink transition px-2 py-1">O'chirish</button>
+        </div>`;
+      listEl.appendChild(row);
+      row.querySelector('.edit-btn').addEventListener('click', () => {
+        editingPhotoId = p.id;
+        document.getElementById('p-title').value = p.title;
+        document.getElementById('p-images').value = p.images;
+        document.getElementById('photo-form-title').textContent = "Fotoreportajni tahrirlash";
+        document.getElementById('photo-submit-btn').textContent = "Yangilash";
+        document.getElementById('photo-cancel-btn').classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      row.querySelector('.delete-btn').addEventListener('click', async () => {
+        if (!confirm("Ushbu fotoreportajni o'chirmoqchimisiz?")) return;
+        const { error } = await sb.from('photo_reports').delete().eq('id', p.id);
+        if (error) { alert("Xatolik: " + error.message); return; }
+        loadPhotos();
+      });
+    });
+  }
+
+  // ================= IMAGE UPLOAD (Supabase Storage) =================
+  async function uploadImage(file) {
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await sb.storage.from('images').upload(fileName, file);
+    if (error) throw error;
+    const { data } = sb.storage.from('images').getPublicUrl(fileName);
+    return data.publicUrl;
+  }
+
+  function wireImageUpload(fileInputId, targetInputId, statusId) {
+    const fileInput = document.getElementById(fileInputId);
+    const targetInput = document.getElementById(targetInputId);
+    const statusEl = document.getElementById(statusId);
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      statusEl.textContent = 'Yuklanmoqda...';
+      statusEl.className = 'text-ink2';
+      try {
+        const url = await uploadImage(file);
+        targetInput.value = url;
+        statusEl.textContent = 'Yuklandi ✓';
+        statusEl.className = 'text-teal';
+      } catch (err) {
+        statusEl.textContent = 'Xatolik: ' + err.message;
+        statusEl.className = 'text-signal';
+      }
+      fileInput.value = '';
+    });
+  }
+  wireImageUpload('a-image-file', 'a-image', 'a-image-status');
+  wireImageUpload('v-thumb-file', 'v-thumb', 'v-thumb-status');
+
+  // Fotoreportaj uchun: bir nechta fayl birga tanlanadi, har biri navbat bilan yuklanadi
+  // va natijadagi URL manzillari p-images maydoniga qator qilib qo'shiladi.
+  document.getElementById('p-images-file').addEventListener('change', async () => {
+    const files = Array.from(document.getElementById('p-images-file').files);
+    if (!files.length) return;
+    const statusEl = document.getElementById('p-images-status');
+    const imagesField = document.getElementById('p-images');
+    for (let i = 0; i < files.length; i++) {
+      statusEl.textContent = `Yuklanmoqda... (${i + 1}/${files.length})`;
+      statusEl.className = 'text-ink2';
+      try {
+        const url = await uploadImage(files[i]);
+        imagesField.value = imagesField.value.trim() ? imagesField.value.trim() + '\n' + url : url;
+      } catch (err) {
+        statusEl.textContent = 'Xatolik: ' + err.message;
+        statusEl.className = 'text-signal';
+        return;
+      }
+    }
+    statusEl.textContent = 'Yuklandi ✓';
+    statusEl.className = 'text-teal';
+    document.getElementById('p-images-file').value = '';
+  });
+
+  // ================= AI YORDAMCHI =================
+  let aiResult = null;
+
+  document.getElementById('ai-generate-btn').addEventListener('click', async () => {
+    const url = document.getElementById('ai-source').value.trim();
+    const sourceName = document.getElementById('ai-source-name').value.trim() || 'Xorijiy manba';
+    const style = document.getElementById('ai-style').value;
+    const statusEl = document.getElementById('ai-status');
+    const btn = document.getElementById('ai-generate-btn');
+
+    if (!url) {
+      statusEl.textContent = 'Maqola havolasini yozing!';
+      return;
+    }
+    if (!url.startsWith('http')) {
+      statusEl.textContent = 'To\'liq havola yozing (https://... bilan boshlang)';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> O'qilmoqda va tarjima qilinmoqda...`;
+    statusEl.textContent = '';
+    document.getElementById('ai-result').classList.add('hidden');
+
+    try {
+      const response = await fetch('/api/ai-translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, sourceName, style })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Server xatosi');
+      const parsed = data.result;
+
+      // Rasm qidirish — Unsplash
+      const keywords = (parsed.image_keywords || parsed.category || 'news').replace(/\s+/g, ',');
+      const imageUrl = `https://source.unsplash.com/1200x720/?${encodeURIComponent(keywords)}&t=${Date.now()}`;
+
+      aiResult = { ...parsed, source: sourceName, image_url: imageUrl };
+
+      document.getElementById('ai-res-title').textContent = parsed.title;
+      document.getElementById('ai-res-category').textContent = parsed.category;
+      document.getElementById('ai-res-source').textContent = sourceName;
+      document.getElementById('ai-res-excerpt').textContent = parsed.excerpt;
+      document.getElementById('ai-res-content').textContent = parsed.content;
+
+      const imgPreview = document.getElementById('ai-res-image');
+      imgPreview.src = imageUrl;
+      imgPreview.classList.remove('hidden');
+      document.getElementById('ai-res-image-url').value = imageUrl;
+
+      document.getElementById('ai-result').classList.remove('hidden');
+      statusEl.textContent = '';
+
+    } catch (err) {
+      statusEl.textContent = 'Xatolik: ' + err.message;
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Maqola yaratish`;
+  });
+
+  document.getElementById('ai-new-image-btn').addEventListener('click', () => {
+    if (!aiResult) return;
+    const keywords = (aiResult.image_keywords || aiResult.category || 'news').replace(/\s+/g, ',');
+    const newUrl = `https://source.unsplash.com/1200x720/?${encodeURIComponent(keywords)}&sig=${Date.now()}`;
+    aiResult.image_url = newUrl;
+    const img = document.getElementById('ai-res-image');
+    img.src = newUrl;
+    img.classList.remove('hidden');
+    document.getElementById('ai-res-image-url').value = newUrl;
+  });
+
+  document.getElementById('ai-res-image-url').addEventListener('change', (e) => {
+    if (aiResult) {
+      aiResult.image_url = e.target.value;
+      const img = document.getElementById('ai-res-image');
+      img.src = e.target.value;
+      img.classList.remove('hidden');
+    }
+  });
+
+  document.getElementById('ai-use-btn').addEventListener('click', () => {
+    if (!aiResult) return;
+    document.getElementById('a-title').value = aiResult.title || '';
+    document.getElementById('a-category').value = aiResult.category || 'Dunyo';
+    document.getElementById('a-excerpt').value = aiResult.excerpt || '';
+    document.getElementById('a-content').value = aiResult.content || '';
+    document.getElementById('a-author').value = aiResult.source ? aiResult.source + ' asosida' : '';
+    document.getElementById('a-image').value = document.getElementById('ai-res-image-url').value || aiResult.image_url || '';
+    switchTab('articles');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  checkSession();
+</script>
+</body>
+</html>
