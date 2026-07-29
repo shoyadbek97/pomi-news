@@ -1,71 +1,61 @@
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method !== 'POST') return res.status(405).end();
 
-  try {
-    const { url, sourceName = "Manba", style = "news" } = req.body;
+  const { url, sourceName, style } = req.body;
+  if (!url) return res.status(400).json({ error: 'URL kerak' });
 
-    if (!url) {
-      return res.status(400).json({ error: "URL kerak" });
-    }
+  const stylePrompts = {
+    news: "Qisqa, tezkor yangilik formatida (150-250 so'z)",
+    full: "To'liq maqola formatida (400-600 so'z)",
+    showbiz: "Shou-biznes maqolasi uslubida (200-350 so'z)",
+  };
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1500,
-        messages: [
-          {
-            role: "user",
-            content: `Quyidagi maqolani o'qib, o'zbek tilida qayta yoz.
-
-URL:
-${url}
+  const prompt = `Siz Pomi.uz o'zbek yangiliklar saytining tajribali jurnalistidasiz.
+Quyidagi havolaga kirib maqolani o'qing va o'zbek tilida qayta yozing.
 
 Qoidalar:
-- Faqat JSON qaytar.
-- title
-- category
-- excerpt
-- content
-- image_keywords
-- Oxirida "Manba: ${sourceName}" yoz.`
-          }
-        ]
-      })
-    });
+- Faqat o'zbek tilida yozing
+- "Gap shundaki," faqat bir marta ishlatilsin
+- "Muzokaralarga sabab bo'ldi" HECH QACHON ishlatmang
+- Oxirida "Manba: ${sourceName}" yozing
+- ${stylePrompts[style] || stylePrompts.news}
+
+Havola: ${url}
+
+Javob FAQAT shu JSON formatida bo'lsin, boshqa hech narsa yozma:
+{
+  "title": "sarlavha",
+  "category": "Jamiyat yoki Siyosat yoki Iqtisodiyot yoki Sport yoki Texnologiya yoki Shou-biznes yoki Dunyo",
+  "excerpt": "1-2 jumlali qisqacha mazmun",
+  "content": "to'liq maqola matni, xatboshilar newline bilan ajratilgan",
+  "image_keywords": "2-3 inglizcha kalit so'z vergul bilan, rasm qidirish uchun"
+}`;
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tools: [{ url_context: {} }],
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+        })
+      }
+    );
 
     const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || 'Gemini xatosi');
 
-    if (!response.ok) {
-      return res.status(500).json({
-        error: data.error?.message || "Claude API xatosi"
-      });
-    }
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('Gemini javobi kelmadi');
 
-    const text = data.content?.[0]?.text || "";
+    const match = text.replace(/```json|```/g, '').match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('Natija tayyorlanmadi, qayta urining');
 
-    const match = text.match(/\{[\s\S]*\}/);
-
-    if (!match) {
-      return res.status(500).json({
-        error: "Claude JSON qaytarmadi"
-      });
-    }
-
-    return res.status(200).json({
-      result: JSON.parse(match[0])
-    });
-
+    res.json({ result: JSON.parse(match[0]) });
   } catch (err) {
-    return res.status(500).json({
-      error: err.message
-    });
+    res.status(500).json({ error: err.message });
   }
 }
