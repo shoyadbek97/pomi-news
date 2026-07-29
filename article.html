@@ -160,6 +160,44 @@
   const params = new URLSearchParams(location.search);
   const articleId = params.get('id');
 
+  // "https://youtu.be/ID", "https://www.youtube.com/watch?v=ID",
+  // "https://www.youtube.com/shorts/ID" kabi havolalarni embed formatga o'giradi.
+  function getYouTubeEmbedUrl(rawUrl) {
+    try {
+      const u = new URL(rawUrl);
+      let id = '';
+      if (u.hostname.includes('youtu.be')) {
+        id = u.pathname.slice(1);
+      } else if (u.hostname.includes('youtube.com')) {
+        if (u.pathname === '/watch') id = u.searchParams.get('v');
+        else if (u.pathname.startsWith('/embed/')) id = u.pathname.split('/embed/')[1];
+        else if (u.pathname.startsWith('/shorts/')) id = u.pathname.split('/shorts/')[1];
+      }
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Har bir qatorni [rasm: URL] / [video: URL] belgisiga qarab rasm, video yoki oddiy paragraf sifatida chiqaradi.
+  function renderContentLine(line) {
+    const imgMatch = line.match(/^\[rasm:\s*(.+)\]$/i);
+    if (imgMatch) {
+      const src = imgMatch[1].trim();
+      return `<img src="${src}" alt="" class="w-full rounded-xl my-6" loading="lazy">`;
+    }
+    const videoMatch = line.match(/^\[video:\s*(.+)\]$/i);
+    if (videoMatch) {
+      const videoUrl = videoMatch[1].trim();
+      const embedUrl = getYouTubeEmbedUrl(videoUrl);
+      if (embedUrl) {
+        return `<div class="relative w-full aspect-video rounded-xl overflow-hidden my-6"><iframe class="absolute inset-0 w-full h-full" src="${embedUrl}" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+      }
+      return `<a href="${videoUrl}" target="_blank" rel="noopener" class="block my-6 px-4 py-3 rounded-xl border border-ink/15 dark:border-borderdark text-signal font-medium hover:bg-ink/5 dark:hover:bg-white/5 transition">▶ Videoni ko'rish</a>`;
+    }
+    return `<p>${line}</p>`;
+  }
+
   async function loadArticle() {
     if (!articleId) { showError(); return; }
 
@@ -188,11 +226,11 @@
       img.classList.remove('hidden');
     }
 
-    // Full content — paragraphs
+    // Full content — paragraphs, with inline [rasm: URL] va [video: URL] belgilari
     if (data.content) {
       const contentEl = document.getElementById('art-content');
-      const paragraphs = data.content.split('\n').filter(p => p.trim());
-      contentEl.innerHTML = paragraphs.map(p => `<p>${p}</p>`).join('');
+      const lines = data.content.split('\n').map(l => l.trim()).filter(Boolean);
+      contentEl.innerHTML = lines.map(renderContentLine).join('');
     }
 
     // Share buttons
