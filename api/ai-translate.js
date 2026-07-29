@@ -28,14 +28,14 @@ Javob FAQAT shu JSON formatida bo'lsin, boshqa hech narsa yozma:
   "category": "Jamiyat yoki Siyosat yoki Iqtisodiyot yoki Sport yoki Texnologiya yoki Shou-biznes yoki Dunyo",
   "excerpt": "1-2 jumlali qisqacha mazmun",
   "content": "to'liq maqola matni, xatboshilar newline bilan ajratilgan",
-  "image_keywords": "2-3 inglizcha kalit so me'z vergul bilan, rasm qidirish uchun"
+  "image_keywords": "2-3 inglizcha kalit so'z vergul bilan, rasm qidirish uchun"
 }`;
 
-  // Faqat real va barqaror ishlaydigan Gemini modellar ro'yxati
+  // Aniq ishlaydigan va v1beta API qo'llab-quvvatlaydigan Gemini modellar ro'yxati
   const models = [
     'gemini-1.5-flash',
-    'gemini-1.5-pro',
-    'gemini-1.0-pro'
+    'gemini-1.5-flash-8b',
+    'gemini-1.5-pro'
   ];
 
   let lastError = '';
