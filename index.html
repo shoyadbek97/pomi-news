@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pomi.uz — Tezkor yangiliklar va multimedia portali</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          paper: '#EAEDF0',
+          paper2: '#DCE1E4',
+          ink: '#0F172A',
+          ink2: '#4B5567',
+          signal: '#E23F26',
+          amber: '#F2A93B',
+          teal: '#146B5F',
+          inkbg: '#0B111D',
+          surfacedark: '#131B2B',
+          surfacedark2: '#1A2438',
+          borderdark: '#232D40',
+        },
+        fontFamily: {
+          display: ['Fraunces', 'serif'],
+          body: ['Inter', 'sans-serif'],
+          mono: ['"IBM Plex Mono"', 'monospace'],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  ::selection { background: #E23F26; color: #fff; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-marquee { animation: marquee 32s linear infinite; }
+  .marquee-wrap:hover .animate-marquee { animation-play-state: paused; }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.75); }
+  }
+  .live-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee { animation: none; }
+    .live-dot { animation: none; }
+    html { scroll-behavior: auto; }
+  }
+
+  .clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .card-hover { transition: transform .35s ease, box-shadow .35s ease; }
+  .card-hover:hover { transform: translateY(-4px); }
+</style>
+</head>
+
+<body class="bg-paper text-ink dark:bg-inkbg dark:text-paper font-body transition-colors duration-300">
+
+<!-- ================= UTILITY BAR ================= -->
+<div class="border-b border-ink/10 dark:border-borderdark">
+  <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-10 flex items-center justify-between text-xs">
+    <div class="flex items-center gap-3 font-mono text-ink2 dark:text-paper2/70">
+      <span id="today-date"></span>
+      <span class="opacity-30">|</span>
+      <span>Toshkent</span>
+      <span id="clock" class="font-semibold text-ink dark:text-paper">00:00:00</span>
+      <span class="opacity-30 hidden sm:inline">|</span>
+      <span id="visitor-count" class="hidden sm:flex items-center gap-1 text-ink2 dark:text-paper2/70">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        <span id="visitor-num">—</span> <span id="visits-suffix">tashrif</span>
+      </span>
+    </div>
+    <div class="flex items-center gap-1">
+      <div class="relative">
+        <button id="lang-toggle" aria-label="Tilni tanlash" aria-haspopup="true" aria-expanded="false" class="flex items-center gap-1.5 pl-2.5 pr-2 py-2 rounded-full hover:bg-ink/5 dark:hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-signal transition text-xs font-semibold">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20 15.3 15.3 0 010-20z"/></svg>
+          <span id="lang-current-label">Lotin</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="lang-menu" class="hidden absolute right-0 mt-2 w-44 bg-white dark:bg-surfacedark border border-ink/10 dark:border-borderdark rounded-xl shadow-xl overflow-hidden z-50 text-sm text-ink dark:text-paper">
+          <button data-lang="uz-latn" class="lang-option w-full text-left px-4 py-2.5 hover:bg-ink/5 dark:hover:bg-white/10 flex items-center gap-2.5">
+            <span class="text-base leading-none">🇺🇿</span><span>O'zbekcha (lotin)</span>
+          </button>
+          <button data-lang="uz-cyrl" class="lang-option w-full text-left px-4 py-2.5 hover:bg-ink/5 dark:hover:bg-white/10 flex items-center gap-2.5">
+            <span class="text-base leading-none">🇺🇿</span><span>Ўзбекча (кирилл)</span>
+          </button>
+          <button data-lang="ru" class="lang-option w-full text-left px-4 py-2.5 hover:bg-ink/5 dark:hover:bg-white/10 flex items-center gap-2.5">
+            <span class="text-base leading-none">🇷🇺</span><span>Русский</span>
+          </button>
+          <button data-lang="en" class="lang-option w-full text-left px-4 py-2.5 hover:bg-ink/5 dark:hover:bg-white/10 flex items-center gap-2.5">
+            <span class="text-base leading-none">🇬🇧</span><span>English</span>
+          </button>
+        </div>
+      </div>
+      <button id="search-open" aria-label="Qidiruvni ochish" class="p-2 rounded-full hover:bg-ink/5 dark:hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-signal transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button id="theme-toggle" aria-label="Tungi rejimni almashtirish" class="p-2 rounded-full hover:bg-ink/5 dark:hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-signal transition">
+        <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MASTHEAD ================= -->
+<header class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-6 pb-4">
+  <div class="flex items-end justify-between flex-wrap gap-2">
+    <div>
+      <a href="#" class="font-display font-black text-4xl md:text-5xl tracking-tight leading-none">POMI<span class="text-signal">.UZ</span></a>
+      <p id="site-tagline" data-i18n="tagline" class="mt-1 text-[11px] md:text-xs uppercase tracking-[0.2em] text-ink2 dark:text-paper2/60">Dunyo va O'zbekiston yangiliklari — real vaqt rejimida</p>
+    </div>
+  </div>
+  <nav class="mt-4 -mx-1 overflow-x-auto scrollbar-hide">
+    <ul id="category-nav" class="flex items-center gap-1 px-1 whitespace-nowrap text-sm font-medium">
+      <li><a href="#" data-category="" data-i18n="nav_home" class="nav-link inline-block px-3 py-1.5 rounded-full bg-ink text-paper dark:bg-paper dark:text-ink">Bosh sahifa</a></li>
+      <li><a href="#" data-category="Jamiyat" data-i18n="cat_Jamiyat" class="nav-link inline-block px-3 py-1.5 rounded-full hover:bg-ink/5 dark:hover:bg-white/10 transition">Jamiyat</a></li>
+      <li><a href="#" data-category="Siyosat" data-i18n="cat_Siyosat" class="nav-link inline-block px-3 py-1.5 rounded-full hover:bg-ink/5 dark:hover:bg-white/10 transition">Siyosat</a></li>
+      <li><a href="#" data-category="Iqtisodiyot" data-i18n="cat_Iqtisodiyot" class="nav-link inline-block px-3 py-1.5 rounded-full hover:bg-ink/5 dark:hover:bg-white/10 transition">Iqtisodiyot</a></li>
+      <li><a href="#" data-category="Sport" data-i18n="cat_Sport" class="nav-link inline-block px-3 py-1.5 rounded-full hover:bg-ink/5 dark:hover:bg-white/10 transition">Sport</a></li>
+      <li><a href="#" data-category="Texnologiya" data-i18n="cat_Texnologiya" class="nav-link inline-block px-3 py-1.5 rounded-full hover:bg-ink/5 dark:hover:bg-white/10 transition">Texnologiya</a></li>
+      <li><a href="#" data-category="Shou-biznes" data-i18n="cat_ShouBiznes" class="nav-link inline-block px-3 py-1.5 rounded-full hover:bg-ink/5 dark:hover:bg-white/10 transition">Shou-biznes</a></li>
+      <li><a href="#videos" data-i18n="nav_videos" class="inline-block px-3 py-1.5 rounded-full hover:bg-ink/5 dark:hover:bg-white/10 transition">Videolar</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- ================= BREAKING TICKER ================= -->
+<div class="bg-signal text-white">
+  <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-11 flex items-center gap-3">
+    <span class="flex items-center gap-2 shrink-0 font-mono text-xs font-bold uppercase tracking-wider">
+      <span class="w-2 h-2 rounded-full bg-white live-dot"></span> <span id="ticker-label" data-i18n="ticker_label">Tezkor</span>
+    </span>
+    <div class="marquee-wrap flex-1 overflow-hidden">
+      <div id="ticker-track" class="flex w-max animate-marquee text-sm">
+        <!-- JS orqali to'ldiriladi -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+
+  <!-- ================= HERO ================= -->
+  <section id="hero-section" class="grid grid-cols-1 lg:grid-cols-3 gap-6 py-8">
+    <a id="hero-link" href="#" class="lg:col-span-2 relative rounded-2xl overflow-hidden group card-hover shadow-lg shadow-ink/5">
+      <img id="hero-image" src="" alt="" class="w-full h-[320px] md:h-[440px] object-cover group-hover:scale-105 transition duration-700">
+      <div class="absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-transparent"></div>
+      <div class="absolute bottom-0 left-0 right-0 p-5 md:p-8">
+        <span id="hero-category" class="inline-block bg-signal text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full"></span>
+        <h1 id="hero-title" class="mt-3 font-display font-bold text-2xl md:text-4xl lg:text-[2.6rem] leading-tight text-white max-w-2xl"></h1>
+        <p id="hero-excerpt" class="mt-3 text-sm md:text-base text-paper2/90 max-w-xl hidden sm:block"></p>
+        <div class="mt-4 flex items-center gap-4 font-mono text-xs text-white/70">
+          <span id="hero-author"></span>
+          <span id="hero-time"></span>
+          <span id="hero-views" class="flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span id="hero-views-num">0</span>
+          </span>
+        </div>
+      </div>
+    </a>
+
+    <div id="sidebar-list" class="flex flex-col divide-y divide-ink/10 dark:divide-borderdark">
+      <!-- JS orqali to'ldiriladi -->
+    </div>
+  </section>
+
+  <!-- ================= SHORT VIDEOS ================= -->
+  <section id="videos" class="py-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 id="videos-heading" data-i18n="videos_heading" class="font-display font-bold text-xl md:text-2xl">Qisqa videolar</h2>
+      <div class="flex items-center gap-2">
+        <button id="video-prev" aria-label="Oldingi" class="hidden md:flex w-8 h-8 items-center justify-center rounded-full border border-ink/15 dark:border-borderdark hover:bg-ink/5 dark:hover:bg-white/10 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button id="video-next" aria-label="Keyingi" class="hidden md:flex w-8 h-8 items-center justify-center rounded-full border border-ink/15 dark:border-borderdark hover:bg-ink/5 dark:hover:bg-white/10 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="video-track" class="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2">
+      <!-- JS orqali to'ldiriladi -->
+    </div>
+  </section>
+
+  <!-- ================= PHOTO REPORT ================= -->
+  <section class="py-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 id="photos-heading" data-i18n="photos_heading" class="font-display font-bold text-xl md:text-2xl">Fotoreportaj</h2>
+      <span id="photos-hint" data-i18n="photos_hint" class="text-sm text-ink2 dark:text-paper2/60">Galereyani ko'rish uchun bosing</span>
+    </div>
+
+    <div id="photo-grid" class="grid grid-cols-2 md:grid-cols-4 grid-rows-2 gap-3 h-[420px] md:h-[380px]">
+      <!-- JS orqali to'ldiriladi -->
+    </div>
+  </section>
+
+  <!-- ================= LATEST NEWS GRID ================= -->
+  <section class="py-8">
+    <h2 id="grid-heading" data-i18n="latest_heading" class="font-display font-bold text-xl md:text-2xl mb-4">So'nggi yangiliklar</h2>
+    <div id="news-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <!-- JS orqali to'ldiriladi -->
+    </div>
+    <div id="grid-sentinel" class="h-10"></div>
+    <p id="grid-loader" class="hidden text-center text-sm text-ink2 dark:text-paper2/60 py-4" data-i18n="loading">Yuklanmoqda...</p>
+    <p id="grid-end" class="hidden text-center text-sm text-ink2 dark:text-paper2/50 py-4" data-i18n="no_more">Boshqa yangilik yo'q</p>
+  </section>
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer class="bg-ink text-paper dark:bg-black mt-8">
+  <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10 grid grid-cols-1 md:grid-cols-4 gap-8">
+    <div class="md:col-span-2">
+      <div class="font-display font-black text-2xl">POMI<span class="text-signal">.UZ</span></div>
+      <p id="footer-desc" data-i18n="footer_desc" class="text-sm text-paper2/60 mt-2 max-w-sm">O'zbekiston va dunyodagi voqealarni tezkor, aniq va tekshirilgan tarzda yorituvchi multimedia portali.</p>
+    </div>
+    <div>
+      <h4 id="footer-sections-title" data-i18n="footer_sections" class="text-xs font-bold uppercase tracking-wider text-paper2/50 mb-3">Bo'limlar</h4>
+      <ul class="space-y-2 text-sm text-paper2/80">
+        <li><a href="#" data-i18n="cat_Jamiyat" class="hover:text-white">Jamiyat</a></li>
+        <li><a href="#" data-i18n="cat_Sport" class="hover:text-white">Sport</a></li>
+        <li><a href="#" data-i18n="cat_Texnologiya" class="hover:text-white">Texnologiya</a></li>
+        <li><a href="#" data-i18n="cat_ShouBiznes" class="hover:text-white">Shou-biznes</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 id="footer-social-title" data-i18n="footer_social" class="text-xs font-bold uppercase tracking-wider text-paper2/50 mb-3">Ijtimoiy tarmoqlar</h4>
+      <ul class="space-y-2 text-sm text-paper2/80">
+        <li><a href="#" class="hover:text-white">Telegram</a></li>
+        <li><a href="#" class="hover:text-white">Instagram</a></li>
+        <li><a href="#" class="hover:text-white">YouTube</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="border-t border-white/10">
+    <div id="footer-copyright" data-i18n="footer_copyright" class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-4 text-[11px] font-mono text-paper2/40">
+      © 2026 Pomi.uz. Barcha huquqlar himoyalangan.
+    </div>
+  </div>
+</footer>
+
+<!-- ================= SEARCH MODAL ================= -->
+<div id="search-modal" class="fixed inset-0 z-50 hidden">
+  <div id="search-backdrop" class="absolute inset-0 bg-ink/60 backdrop-blur-sm"></div>
+  <div class="relative max-w-2xl mx-auto mt-20 px-4">
+    <div class="bg-white dark:bg-surfacedark rounded-2xl shadow-2xl overflow-hidden">
+      <div class="p-2 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 ml-3 text-ink2 dark:text-paper2/60 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="search-input" type="text" placeholder="Yangilik sarlavhasi bo'yicha qidiring..." data-i18n-placeholder="search_placeholder" class="flex-1 bg-transparent py-3 outline-none text-base placeholder:text-ink2/50 dark:placeholder:text-paper2/40">
+        <button id="search-close" aria-label="Yopish" class="p-2 mr-1 rounded-full hover:bg-ink/5 dark:hover:bg-white/10 shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="search-results" class="max-h-80 overflow-y-auto px-3 pb-3 space-y-1"></div>
+    </div>
+    <p class="text-center text-xs text-white/50 mt-3"><span id="esc-hint">Yopish uchun</span> <kbd class="px-1.5 py-0.5 bg-white/10 rounded">Esc</kbd></p>
+  </div>
+</div>
+
+<!-- ================= PHOTO LIGHTBOX ================= -->
+<div id="lightbox" class="fixed inset-0 z-50 hidden bg-black/95 items-center justify-center">
+  <button id="lightbox-close" aria-label="Yopish" class="absolute top-4 right-4 md:top-6 md:right-6 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <button id="lightbox-prev" aria-label="Oldingi rasm" class="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 p-2 md:p-3 rounded-full bg-white/10 hover:bg-white/20 text-white">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 md:w-6 md:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <button id="lightbox-next" aria-label="Keyingi rasm" class="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 p-2 md:p-3 rounded-full bg-white/10 hover:bg-white/20 text-white">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 md:w-6 md:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+  <div class="max-w-3xl w-full px-4">
+    <img id="lightbox-img" src="" alt="" class="w-full max-h-[70vh] object-contain rounded-xl mx-auto">
+    <div class="text-center mt-4">
+      <p id="lightbox-caption" class="text-white font-display text-lg"></p>
+      <span id="lightbox-counter" class="text-white/50 text-xs font-mono"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ================= I18N (TIL TIZIMI) =================
+  const LANG_KEY = 'pomi_lang';
+  const LOCALE_MAP = { 'uz-latn': 'uz-UZ', 'uz-cyrl': 'uz-UZ', 'ru': 'ru-RU', 'en': 'en-US' };
+  const LANG_LABELS = { 'uz-latn': "Lotin", 'uz-cyrl': "Кирилл", 'ru': "RU", 'en': "EN" };
+
+  const I18N = {
+    'uz-latn': {
+      tagline: "Dunyo va O'zbekiston yangiliklari — real vaqt rejimida",
+      nav_home: "Bosh sahifa", nav_videos: "Videolar",
+      cat_Jamiyat: "Jamiyat", cat_Siyosat: "Siyosat", cat_Iqtisodiyot: "Iqtisodiyot",
+      cat_Sport: "Sport", cat_Texnologiya: "Texnologiya", cat_ShouBiznes: "Shou-biznes", cat_Dunyo: "Dunyo",
+      ticker_label: "Tezkor",
+      lang_select_aria: "Tilni tanlash",
+      search_open_aria: "Qidiruvni ochish", theme_toggle_aria: "Tungi rejimni almashtirish",
+      search_close_aria: "Yopish", search_placeholder: "Yangilik sarlavhasi bo'yicha qidiring...",
+      esc_hint: "Yopish uchun", searching: "Qidirilmoqda...", no_results: (q) => `Hech narsa topilmadi: "${q}"`,
+      video_prev_aria: "Oldingi", video_next_aria: "Keyingi",
+      videos_heading: "Qisqa videolar", photos_heading: "Fotoreportaj", photos_hint: "Galereyani ko'rish uchun bosing",
+      latest_heading: "So'nggi yangiliklar", loading: "Yuklanmoqda...", no_more: "Boshqa yangilik yo'q",
+      footer_desc: "O'zbekiston va dunyodagi voqealarni tezkor, aniq va tekshirilgan tarzda yorituvchi multimedia portali.",
+      footer_sections: "Bo'limlar", footer_social: "Ijtimoiy tarmoqlar",
+      footer_copyright: "© 2026 Pomi.uz. Barcha huquqlar himoyalangan.",
+      no_news: "Hali yangiliklar yo'q", no_news_category: "Bu turkumda hozircha yangilik yo'q",
+      add_via_admin: "Admin panel orqali qo'shing:", add_first_via_admin: "Admin panel orqali birinchi yangilikni qo'shing:",
+      no_videos: "Hali videolar yo'q. Admin panel orqali qo'shing:", no_photos: "Hali fotoreportajlar yo'q. Admin panel orqali qo'shing:",
+      welcome_ticker: "Pomi.uz ga xush kelibsiz — yangiliklar tez orada qo'shiladi",
+      just_now: "hozirgina", minutes_ago: (n) => `${n} daqiqa oldin`, hours_ago: (n) => `${n} soat oldin`, days_ago: (n) => `${n} kun oldin`,
+      mln: " mln", ming: " ming", editorial: "Tahririyat", photo_count: (n) => `${n} rasm`,
+      category_heading: (cat) => `${cat} yangiliklari`, lightbox_close_aria: "Yopish",
+      lightbox_prev_aria: "Oldingi rasm", lightbox_next_aria: "Keyingi rasm",
+      visits_suffix: "tashrif",
+    },
+    'uz-cyrl': {
+      tagline: "Дунё ва Ўзбекистон янгиликлари — реал вақт режимида",
+      nav_home: "Бош саҳифа", nav_videos: "Видеолар",
+      cat_Jamiyat: "Жамият", cat_Siyosat: "Сиёсат", cat_Iqtisodiyot: "Иқтисодиёт",
+      cat_Sport: "Спорт", cat_Texnologiya: "Технология", cat_ShouBiznes: "Шоу-бизнес", cat_Dunyo: "Дунё",
+      ticker_label: "Тезкор",
+      lang_select_aria: "Тилни танлаш",
+      search_open_aria: "Қидирувни очиш", theme_toggle_aria: "Тунги режимни алмаштириш",
+      search_close_aria: "Ёпиш", search_placeholder: "Янгилик сарлавҳаси бўйича қидиринг...",
+      esc_hint: "Ёпиш учун", searching: "Қидирилмоқда...", no_results: (q) => `Ҳеч нарса топилмади: "${q}"`,
+      video_prev_aria: "Олдинги", video_next_aria: "Кейинги",
+      videos_heading: "Қисқа видеолар", photos_heading: "Фоторепортаж", photos_hint: "Галереяни кўриш учун босинг",
+      latest_heading: "Сўнгги янгиликлар", loading: "Юкланмоқда...", no_more: "Бошқа янгилик йўқ",
+      footer_desc: "Ўзбекистон ва дунёдаги воқеаларни тезкор, аниқ ва текширилган тарзда ёритувчи мультимедиа портали.",
+      footer_sections: "Бўлимлар", footer_social: "Ижтимоий тармоқлар",
+      footer_copyright: "© 2026 Pomi.uz. Барча ҳуқуқлар ҳимояланган.",
+      no_news: "Ҳали янгиликлар йўқ", no_news_category: "Бу туркумда ҳозирча янгилик йўқ",
+      add_via_admin: "Админ панел орқали қўшинг:", add_first_via_admin: "Админ панел орқали биринчи янгиликни қўшинг:",
+      no_videos: "Ҳали видеолар йўқ. Админ панел орқали қўшинг:", no_photos: "Ҳали фоторепортажлар йўқ. Админ панел орқали қўшинг:",
+      welcome_ticker: "Pomi.uz га хуш келибсиз — янгиликлар тез орада қўшилади",
+      just_now: "ҳозиргина", minutes_ago: (n) => `${n} дақиқа олдин`, hours_ago: (n) => `${n} соат олдин`, days_ago: (n) => `${n} кун олдин`,
+      mln: " млн", ming: " минг", editorial: "Таҳририят", photo_count: (n) => `${n} расм`,
+      category_heading: (cat) => `${cat} янгиликлари`, lightbox_close_aria: "Ёпиш",
+      lightbox_prev_aria: "Олдинги расм", lightbox_next_aria: "Кейинги расм",
+      visits_suffix: "ташриф",
+    },
+    'ru': {
+      tagline: "Новости мира и Узбекистана — в режиме реального времени",
+      nav_home: "Главная", nav_videos: "Видео",
+      cat_Jamiyat: "Общество", cat_Siyosat: "Политика", cat_Iqtisodiyot: "Экономика",
+      cat_Sport: "Спорт", cat_Texnologiya: "Технологии", cat_ShouBiznes: "Шоу-бизнес", cat_Dunyo: "Мир",
+      ticker_label: "Срочно",
+      lang_select_aria: "Выбор языка",
+      search_open_aria: "Открыть поиск", theme_toggle_aria: "Переключить тёмный режим",
+      search_close_aria: "Закрыть", search_placeholder: "Поиск по заголовку новости...",
+      esc_hint: "Закрыть по", searching: "Поиск...", no_results: (q) => `Ничего не найдено: "${q}"`,
+      video_prev_aria: "Назад", video_next_aria: "Вперёд",
+      videos_heading: "Короткие видео", photos_heading: "Фоторепортаж", photos_hint: "Нажмите, чтобы открыть галерею",
+      latest_heading: "Последние новости", loading: "Загрузка...", no_more: "Больше новостей нет",
+      footer_desc: "Мультимедийный портал, оперативно и точно освещающий события в Узбекистане и мире.",
+      footer_sections: "Разделы", footer_social: "Соцсети",
+      footer_copyright: "© 2026 Pomi.uz. Все права защищены.",
+      no_news: "Пока новостей нет", no_news_category: "В этой категории пока нет новостей",
+      add_via_admin: "Добавьте через админ-панель:", add_first_via_admin: "Добавьте первую новость через админ-панель:",
+      no_videos: "Пока нет видео. Добавьте через админ-панель:", no_photos: "Пока нет фоторепортажей. Добавьте через админ-панель:",
+      welcome_ticker: "Добро пожаловать на Pomi.uz — новости скоро появятся",
+      just_now: "только что", minutes_ago: (n) => `${n} мин. назад`, hours_ago: (n) => `${n} ч. назад`, days_ago: (n) => `${n} дн. назад`,
+      mln: " млн", ming: " тыс.", editorial: "Редакция", photo_count: (n) => `${n} фото`,
+      category_heading: (cat) => `Новости: ${cat}`, lightbox_close_aria: "Закрыть",
+      lightbox_prev_aria: "Предыдущее фото", lightbox_next_aria: "Следующее фото",
+      visits_suffix: "визитов",
+    },
+    'en': {
+      tagline: "World and Uzbekistan news — in real time",
+      nav_home: "Home", nav_videos: "Videos",
+      cat_Jamiyat: "Society", cat_Siyosat: "Politics", cat_Iqtisodiyot: "Economy",
+      cat_Sport: "Sports", cat_Texnologiya: "Technology", cat_ShouBiznes: "Showbiz", cat_Dunyo: "World",
+      ticker_label: "Breaking",
+      lang_select_aria: "Select language",
+      search_open_aria: "Open search", theme_toggle_aria: "Toggle dark mode",
+      search_close_aria: "Close", search_placeholder: "Search by news headline...",
+      esc_hint: "Press to close", searching: "Searching...", no_results: (q) => `No results found: "${q}"`,
+      video_prev_aria: "Previous", video_next_aria: "Next",
+      videos_heading: "Short videos", photos_heading: "Photo report", photos_hint: "Click to view gallery",
+      latest_heading: "Latest news", loading: "Loading...", no_more: "No more news",
+      footer_desc: "A multimedia portal covering events in Uzbekistan and the world quickly, accurately and reliably.",
+      footer_sections: "Sections", footer_social: "Social media",
+      footer_copyright: "© 2026 Pomi.uz. All rights reserved.",
+      no_news: "No news yet", no_news_category: "No news in this category yet",
+      add_via_admin: "Add via admin panel:", add_first_via_admin: "Add the first news via admin panel:",
+      no_videos: "No videos yet. Add via admin panel:", no_photos: "No photo reports yet. Add via admin panel:",
+      welcome_ticker: "Welcome to Pomi.uz — news coming soon",
+      just_now: "just now", minutes_ago: (n) => `${n} min ago`, hours_ago: (n) => `${n}h ago`, days_ago: (n) => `${n}d ago`,
+      mln: "M", ming: "K", editorial: "Editorial", photo_count: (n) => `${n} photos`,
+      category_heading: (cat) => `${cat} News`, lightbox_close_aria: "Close",
+      lightbox_prev_aria: "Previous photo", lightbox_next_aria: "Next photo",
+      visits_suffix: "visits",
+    },
+  };
+
+  const CATEGORY_KEY_MAP = { 'Jamiyat': 'cat_Jamiyat', 'Siyosat': 'cat_Siyosat', 'Iqtisodiyot': 'cat_Iqtisodiyot',
+    'Sport': 'cat_Sport', 'Texnologiya': 'cat_Texnologiya', 'Shou-biznes': 'cat_ShouBiznes', 'Dunyo': 'cat_Dunyo' };
+
+  let currentLang = localStorage.getItem(LANG_KEY) || 'uz-latn';
+  if (!I18N[currentLang]) currentLang = 'uz-latn';
+
+  function t(key, ...args) {
+    const val = (I18N[currentLang] && I18N[currentLang][key] !== undefined) ? I18N[currentLang][key] : I18N['uz-latn'][key];
+    return typeof val === 'function' ? val(...args) : val;
+  }
+  function categoryLabel(dbCategory) {
+    const key = CATEGORY_KEY_MAP[dbCategory];
+    return key ? t(key) : dbCategory;
+  }
+
+  // ================= ON-DEMAND TARJIMA (kartalar uchun) =================
+  // Faqat currentLang ru/en bo'lganda ishlaydi; uz-latn/uz-cyrl asl matn bilan qoladi.
+  async function translateArticlesBatch(list) {
+    if (currentLang !== 'ru' && currentLang !== 'en') return list;
+    if (!list || list.length === 0) return list;
+
+    const toFetch = []; // {i, field, text}
+    list.forEach((a, i) => {
+      const cacheKey = `pomi_card_trans_${a.id}_${currentLang}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          a._title = parsed.title; a._excerpt = parsed.excerpt;
+          return;
+        } catch { /* keshni tashlab yuboramiz */ }
+      }
+      toFetch.push(i);
+    });
+
+    if (toFetch.length > 0) {
+      const texts = [];
+      const meta = []; // har bir texts elementi qaysi (i, field) ga tegishli
+      toFetch.forEach(i => {
+        texts.push(list[i].title || ''); meta.push([i, 'title']);
+        texts.push(list[i].excerpt || ''); meta.push([i, 'excerpt']);
+      });
+      try {
+        const res = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts, targetLang: currentLang }),
+        });
+        if (res.ok) {
+          const { translations } = await res.json();
+          if (translations && translations.length === texts.length) {
+            const perArticle = {};
+            meta.forEach(([i, field], idx) => {
+              perArticle[i] = perArticle[i] || {};
+              perArticle[i][field] = translations[idx];
+            });
+            Object.keys(perArticle).forEach(i => {
+              const idx = Number(i);
+              list[idx]._title = perArticle[i].title || list[idx].title;
+              list[idx]._excerpt = perArticle[i].excerpt || list[idx].excerpt;
+              localStorage.setItem(`pomi_card_trans_${list[idx].id}_${currentLang}`, JSON.stringify({ title: list[idx]._title, excerpt: list[idx]._excerpt }));
+            });
+          }
+        }
+      } catch (e) {
+        console.error('Tarjima xatosi:', e);
+      }
+    }
+    return list;
+  }
+
+  function applyStaticTranslations() {
+    document.documentElement.lang = currentLang.startsWith('uz') ? 'uz' : currentLang;
+    document.getElementById('lang-current-label').textContent = LANG_LABELS[currentLang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+    });
+    document.getElementById('search-open').setAttribute('aria-label', t('search_open_aria'));
+    document.getElementById('theme-toggle').setAttribute('aria-label', t('theme_toggle_aria'));
+    document.getElementById('lang-toggle').setAttribute('aria-label', t('lang_select_aria'));
+    document.getElementById('search-close').setAttribute('aria-label', t('search_close_aria'));
+    document.getElementById('video-prev').setAttribute('aria-label', t('video_prev_aria'));
+    document.getElementById('video-next').setAttribute('aria-label', t('video_next_aria'));
+    document.getElementById('lightbox-close').setAttribute('aria-label', t('lightbox_close_aria'));
+    document.getElementById('lightbox-prev').setAttribute('aria-label', t('lightbox_prev_aria'));
+    document.getElementById('lightbox-next').setAttribute('aria-label', t('lightbox_next_aria'));
+    document.getElementById('esc-hint').textContent = t('esc_hint');
+    document.getElementById('visits-suffix').textContent = t('visits_suffix');
+    document.title = `Pomi.uz — ${t('tagline')}`;
+  }
+
+  // ---------- Language dropdown ----------
+  const langToggle = document.getElementById('lang-toggle');
+  const langMenu = document.getElementById('lang-menu');
+  langToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = langMenu.classList.contains('hidden');
+    langMenu.classList.toggle('hidden');
+    langToggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+  });
+  document.addEventListener('click', (e) => {
+    if (!langMenu.classList.contains('hidden') && !langMenu.contains(e.target) && e.target !== langToggle) {
+      langMenu.classList.add('hidden');
+      langToggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+  document.querySelectorAll('.lang-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lang = btn.dataset.lang;
+      if (lang === currentLang) { langMenu.classList.add('hidden'); return; }
+      localStorage.setItem(LANG_KEY, lang);
+      window.location.reload();
+    });
+  });
+
+  applyStaticTranslations();
+
+  // ---------- Live Tashkent clock + date ----------
+  function updateClock() {
+    const now = new Date();
+    const locale = LOCALE_MAP[currentLang] || 'uz-UZ';
+    const timeFmt = new Intl.DateTimeFormat(locale, {
+      timeZone: 'Asia/Tashkent', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+    const dateFmt = new Intl.DateTimeFormat(locale, {
+      timeZone: 'Asia/Tashkent', day: '2-digit', month: 'long', year: 'numeric'
+    });
+    document.getElementById('clock').textContent = timeFmt.format(now);
+    document.getElementById('today-date').textContent = dateFmt.format(now);
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // ---------- Dark mode toggle ----------
+  const html = document.documentElement;
+  const iconSun = document.getElementById('icon-sun');
+  const iconMoon = document.getElementById('icon-moon');
+  const themeToggle = document.getElementById('theme-toggle');
+
+  function setTheme(dark) {
+    html.classList.toggle('dark', dark);
+    iconSun.classList.toggle('hidden', dark);
+    iconMoon.classList.toggle('hidden', !dark);
+  }
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  setTheme(prefersDark);
+  themeToggle.addEventListener('click', () => setTheme(!html.classList.contains('dark')));
+
+  // ---------- Search modal ----------
+  const searchModal = document.getElementById('search-modal');
+  const searchInput = document.getElementById('search-input');
+  const searchResults = document.getElementById('search-results');
+  let searchTimer = null;
+
+  function openSearch() {
+    searchModal.classList.remove('hidden');
+    setTimeout(() => searchInput.focus(), 50);
+  }
+  function closeSearch() {
+    searchModal.classList.add('hidden');
+    searchInput.value = '';
+    searchResults.innerHTML = '';
+  }
+  document.getElementById('search-open').addEventListener('click', openSearch);
+  document.getElementById('search-close').addEventListener('click', closeSearch);
+  document.getElementById('search-backdrop').addEventListener('click', closeSearch);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeSearch(); closeLightbox(); }
+    if ((e.key === '/' || (e.ctrlKey && e.key.toLowerCase() === 'k')) && searchModal.classList.contains('hidden') && document.activeElement.tagName !== 'INPUT') {
+      e.preventDefault();
+      openSearch();
+    }
+  });
+
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    const q = searchInput.value.trim();
+    if (q.length < 2) { searchResults.innerHTML = ''; return; }
+    searchResults.innerHTML = `<p class="text-sm text-ink2 dark:text-paper2/60 px-1 py-2">${t('searching')}</p>`;
+    searchTimer = setTimeout(async () => {
+      const { data, error } = await sb.from('articles')
+        .select('id, title, category, created_at, image_url')
+        .ilike('title', `%${q}%`)
+        .order('created_at', { ascending: false })
+        .limit(8);
+      if (error || !data || data.length === 0) {
+        searchResults.innerHTML = `<p class="text-sm text-ink2 dark:text-paper2/60 px-1 py-2">${t('no_results', q)}</p>`;
+        return;
+      }
+      searchResults.innerHTML = '';
+      data.forEach(a => {
+        const el = document.createElement('a');
+        el.href = '#';
+        el.className = 'flex items-center gap-3 px-1 py-2 rounded-lg hover:bg-ink/5 dark:hover:bg-white/10 transition';
+        el.innerHTML = `
+          <img src="${a.image_url || fallbackImage(a.id, 80, 60)}" alt="" class="w-12 h-10 rounded-lg object-cover shrink-0">
+          <div class="min-w-0">
+            <p class="font-semibold text-sm clamp-2">${a.title}</p>
+            <span class="text-[11px] font-mono text-ink2 dark:text-paper2/50">${categoryLabel(a.category)} · ${timeAgo(a.created_at)}</span>
+          </div>
+        `;
+        el.addEventListener('click', (e) => { e.preventDefault(); closeSearch(); });
+        searchResults.appendChild(el);
+      });
+    }, 350);
+  });
+
+  // ---------- Short video carousel ----------
+  const track = document.getElementById('video-track');
+  document.getElementById('video-prev').addEventListener('click', () => track.scrollBy({ left: -300, behavior: 'smooth' }));
+  document.getElementById('video-next').addEventListener('click', () => track.scrollBy({ left: 300, behavior: 'smooth' }));
+
+  // ---------- Photo lightbox (dinamik fotoreportajlar uchun) ----------
+  let photoGalleries = []; // har bir element: { title, images: [url, url, ...] }
+  let currentReportIndex = 0;
+  let currentPhotoIndex = 0;
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  const lightboxCaption = document.getElementById('lightbox-caption');
+  const lightboxCounter = document.getElementById('lightbox-counter');
+
+  function renderLightbox() {
+    const report = photoGalleries[currentReportIndex];
+    if (!report) return;
+    const src = report.images[currentPhotoIndex];
+    lightboxImg.src = src;
+    lightboxImg.alt = report.title;
+    lightboxCaption.textContent = report.title;
+    lightboxCounter.textContent = `${currentPhotoIndex + 1} / ${report.images.length}`;
+  }
+  function openLightbox(reportIndex, photoIndex) {
+    currentReportIndex = reportIndex;
+    currentPhotoIndex = photoIndex || 0;
+    renderLightbox();
+    lightbox.classList.remove('hidden');
+    lightbox.classList.add('flex');
+  }
+  function closeLightbox() {
+    lightbox.classList.add('hidden');
+    lightbox.classList.remove('flex');
+  }
+  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  document.getElementById('lightbox-prev').addEventListener('click', () => {
+    const report = photoGalleries[currentReportIndex];
+    if (!report) return;
+    currentPhotoIndex = (currentPhotoIndex - 1 + report.images.length) % report.images.length;
+    renderLightbox();
+  });
+  document.getElementById('lightbox-next').addEventListener('click', () => {
+    const report = photoGalleries[currentReportIndex];
+    if (!report) return;
+    currentPhotoIndex = (currentPhotoIndex + 1) % report.images.length;
+    renderLightbox();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (lightbox.classList.contains('hidden')) return;
+    if (e.key === 'ArrowLeft') document.getElementById('lightbox-prev').click();
+    if (e.key === 'ArrowRight') document.getElementById('lightbox-next').click();
+  });
+
+  // ================= DYNAMIC NEWS FROM SUPABASE =================
+  const CATEGORY_COLORS = {
+    'Jamiyat': 'text-teal',
+    'Siyosat': 'text-teal',
+    'Iqtisodiyot': 'text-amber',
+    'Sport': 'text-signal',
+    'Texnologiya': 'text-ink2 dark:text-paper2/70',
+    'Shou-biznes': 'text-ink2 dark:text-paper2/70',
+    'Dunyo': 'text-ink2 dark:text-paper2/70',
+  };
+  function categoryColor(cat) {
+    return CATEGORY_COLORS[cat] || 'text-ink2 dark:text-paper2/70';
+  }
+  function timeAgo(dateStr) {
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return t('just_now');
+    if (mins < 60) return t('minutes_ago', mins);
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return t('hours_ago', hours);
+    const days = Math.floor(hours / 24);
+    return t('days_ago', days);
+  }
+  function fallbackImage(id, w, h) {
+    return `https://picsum.photos/seed/article-${id}/${w}/${h}`;
+  }
+  function formatViews(n) {
+    if (!n) return '0';
+    if (n >= 1000000) return (n / 1000000).toFixed(1).replace('.0','') + t('mln');
+    if (n >= 1000) return (n / 1000).toFixed(1).replace('.0','') + t('ming');
+    return n.toString();
+  }
+
+  // ================= TASHRIF VA KO'RISHLAR =================
+  async function trackVisit() {
+    await sb.from('site_visits').insert({});
+    const { count } = await sb.from('site_visits').select('*', { count: 'exact', head: true });
+    if (count !== null) {
+      document.getElementById('visitor-num').textContent = formatViews(count);
+      document.getElementById('visitor-count').classList.remove('hidden');
+    }
+  }
+  async function incrementViews(articleId) {
+    await sb.rpc('increment_article_views', { article_id: articleId });
+  }
+
+  function renderTicker(list) {
+    const track = document.getElementById('ticker-track');
+    const titles = list.slice(0, 6).map(a => a._title || a.title);
+    const buildGroup = (hidden) => {
+      const span = document.createElement('span');
+      span.className = 'flex items-center gap-8 pr-8';
+      if (hidden) span.setAttribute('aria-hidden', 'true');
+      titles.forEach((t, i) => {
+        const item = document.createElement('span');
+        item.textContent = t;
+        span.appendChild(item);
+        if (i < titles.length - 1) {
+          const dot = document.createElement('span');
+          dot.className = 'opacity-50';
+          dot.textContent = '•';
+          span.appendChild(dot);
+        }
+      });
+      return span;
+    };
+    track.innerHTML = '';
+    track.appendChild(buildGroup(false));
+    track.appendChild(buildGroup(true));
+  }
+
+  function renderHero(a) {
+    document.getElementById('hero-image').src = a.image_url || fallbackImage(a.id, 1200, 720);
+    document.getElementById('hero-image').alt = a._title || a.title;
+    document.getElementById('hero-category').textContent = categoryLabel(a.category);
+    document.getElementById('hero-title').textContent = a._title || a.title;
+    document.getElementById('hero-excerpt').textContent = (a._excerpt !== undefined ? a._excerpt : a.excerpt) || '';
+    document.getElementById('hero-author').textContent = a.author || t('editorial');
+    document.getElementById('hero-time').textContent = timeAgo(a.created_at);
+    document.getElementById('hero-views-num').textContent = formatViews(a.views || 0);
+    const heroLink = document.getElementById('hero-link');
+    heroLink.href = `/article.html?id=${a.id}`;
+    heroLink.onclick = null;
+  }
+
+  function renderSidebar(list) {
+    const el = document.getElementById('sidebar-list');
+    el.innerHTML = '';
+    list.forEach((a, i) => {
+      const item = document.createElement('a');
+      item.href = `/article.html?id=${a.id}`;
+      item.className = `flex gap-3 py-3 ${i === 0 ? 'first:pt-0' : ''} group`;
+      item.innerHTML = `
+        <img src="${a.image_url || fallbackImage(a.id, 200, 160)}" alt="" class="w-24 h-20 rounded-lg object-cover shrink-0">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider ${categoryColor(a.category)}">${categoryLabel(a.category)}</span>
+          <h3 class="font-display font-semibold text-sm leading-snug mt-0.5 group-hover:text-signal transition clamp-2">${a._title || a.title}</h3>
+          <div class="flex items-center gap-2 text-[11px] font-mono text-ink2 dark:text-paper2/50">
+            <span>${timeAgo(a.created_at)}</span>
+            <span class="flex items-center gap-0.5"><svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>${formatViews(a.views||0)}</span>
+          </div>
+        </div>
+      `;
+      el.appendChild(item);
+    });
+  }
+
+  function appendGrid(list) {
+    const el = document.getElementById('news-grid');
+    list.forEach((a) => {
+      const card = document.createElement('a');
+      card.href = `/article.html?id=${a.id}`;
+      card.className = 'rounded-2xl overflow-hidden border border-ink/10 dark:border-borderdark bg-white dark:bg-surfacedark card-hover';
+      card.innerHTML = `
+        <img src="${a.image_url || fallbackImage(a.id, 500, 300)}" alt="" class="w-full h-40 object-cover">
+        <div class="p-4">
+          <span class="text-[11px] font-bold uppercase tracking-wider ${categoryColor(a.category)}">${categoryLabel(a.category)}</span>
+          <h3 class="font-display font-semibold text-base mt-1 clamp-2">${a._title || a.title}</h3>
+          <p class="text-sm text-ink2 dark:text-paper2/60 mt-1 clamp-2">${(a._excerpt !== undefined ? a._excerpt : a.excerpt) || ''}</p>
+          <div class="flex items-center gap-3 mt-3 font-mono text-[11px] text-ink2 dark:text-paper2/50">
+            <span>${timeAgo(a.created_at)}</span>
+            <span class="flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+              ${formatViews(a.views || 0)}
+            </span>
+          </div>
+        </div>
+      `;
+      card.addEventListener('click', () => incrementViews(a.id));
+      el.appendChild(card);
+    });
+  }
+
+  function renderEmptyState() {
+    document.getElementById('hero-section').innerHTML = `
+      <div class="lg:col-span-3 text-center py-16 border border-dashed border-ink/20 dark:border-borderdark rounded-2xl">
+        <p class="font-display text-xl mb-2">${t('no_news')}</p>
+        <p class="text-ink2 dark:text-paper2/60 text-sm">${t('add_first_via_admin')} <code>/admin.html</code></p>
+      </div>
+    `;
+    document.getElementById('ticker-track').innerHTML = `<span>${t('welcome_ticker')}</span>`;
+  }
+
+  // ================= CATEGORY FILTER + INFINITE SCROLL =================
+  const PAGE_SIZE = 9;
+  let activeCategory = '';
+  let gridOffset = 0;
+  let gridLoading = false;
+  let gridExhausted = false;
+  const heroSectionDefaultHTML = document.getElementById('hero-section').innerHTML;
+  const gridLoaderEl = document.getElementById('grid-loader');
+  const gridEndEl = document.getElementById('grid-end');
+  const gridSentinelEl = document.getElementById('grid-sentinel');
+
+  function baseQuery() {
+    let q = sb.from('articles').select('*');
+    if (activeCategory) q = q.eq('category', activeCategory);
+    return q.order('featured', { ascending: false }).order('created_at', { ascending: false });
+  }
+
+  async function loadArticles() {
+    await renderCategory('');
+  }
+
+  async function renderCategory(category) {
+    activeCategory = category;
+    gridOffset = 0;
+    gridExhausted = false;
+    document.getElementById('hero-section').innerHTML = heroSectionDefaultHTML;
+    document.getElementById('news-grid').innerHTML = '';
+    gridEndEl.classList.add('hidden');
+
+    document.querySelectorAll('.nav-link').forEach(link => {
+      const isActive = (link.dataset.category || '') === category;
+      link.classList.toggle('bg-ink', isActive);
+      link.classList.toggle('text-paper', isActive);
+      link.classList.toggle('dark:bg-paper', isActive);
+      link.classList.toggle('dark:text-ink', isActive);
+      link.classList.toggle('hover:bg-ink/5', !isActive);
+      link.classList.toggle('dark:hover:bg-white/10', !isActive);
+    });
+
+    const heading = document.getElementById('grid-heading');
+    heading.textContent = category ? t('category_heading', categoryLabel(category)) : t('latest_heading');
+
+    const { data, error } = await baseQuery().range(0, 5);
+    if (error) {
+      console.error('Supabase xatosi:', error.message);
+      renderEmptyState();
+      return;
+    }
+    if (!data || data.length === 0) {
+      document.getElementById('hero-section').innerHTML = `
+        <div class="lg:col-span-3 text-center py-16 border border-dashed border-ink/20 dark:border-borderdark rounded-2xl">
+          <p class="font-display text-xl mb-2">${category ? t('no_news_category') : t('no_news')}</p>
+          <p class="text-ink2 dark:text-paper2/60 text-sm">${t('add_via_admin')} <code>/admin.html</code></p>
+        </div>
+      `;
+      gridExhausted = true;
+      return;
+    }
+
+    await translateArticlesBatch(data);
+    renderTicker(data);
+    renderHero(data[0]);
+    renderSidebar(data.slice(1, 5));
+    gridOffset = data.length; // hero + sidebar allaqachon ko'rsatilgan yozuvlar soni
+    await loadMoreGrid();
+  }
+
+  async function loadMoreGrid() {
+    if (gridLoading || gridExhausted) return;
+    gridLoading = true;
+    gridLoaderEl.classList.remove('hidden');
+    const { data, error } = await baseQuery().range(gridOffset, gridOffset + PAGE_SIZE - 1);
+    gridLoaderEl.classList.add('hidden');
+    gridLoading = false;
+    if (error) {
+      console.error('Supabase xatosi:', error.message);
+      return;
+    }
+    if (!data || data.length === 0) {
+      gridExhausted = true;
+      if (gridOffset > 5) gridEndEl.classList.remove('hidden');
+      return;
+    }
+    appendGrid(await translateArticlesBatch(data));
+    gridOffset += data.length;
+    if (data.length < PAGE_SIZE) {
+      gridExhausted = true;
+      gridEndEl.classList.remove('hidden');
+    }
+  }
+
+  new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) loadMoreGrid();
+  }, { rootMargin: '400px' }).observe(gridSentinelEl);
+
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      renderCategory(link.dataset.category || '');
+    });
+  });
+
+  // ================= DYNAMIC VIDEOS FROM SUPABASE =================
+  function renderVideos(list) {
+    const trackEl = document.getElementById('video-track');
+    trackEl.innerHTML = '';
+    if (!list.length) {
+      trackEl.innerHTML = `<p class="text-sm text-ink2 dark:text-paper2/60 px-1">${t('no_videos')} <code>/admin.html</code></p>`;
+      return;
+    }
+    list.forEach((v) => {
+      const a = document.createElement('a');
+      a.href = v.video_url || '#';
+      if (v.video_url) { a.target = '_blank'; a.rel = 'noopener'; }
+      a.className = 'snap-start shrink-0 w-36 sm:w-44 aspect-[9/16] rounded-2xl overflow-hidden relative group';
+      a.innerHTML = `
+        <img src="${v.thumbnail_url}" alt="${v.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent"></div>
+        ${v.duration ? `<span class="absolute top-2 right-2 font-mono text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">${v.duration}</span>` : ''}
+        <span class="absolute inset-0 flex items-center justify-center">
+          <span class="w-11 h-11 rounded-full bg-white/20 border border-white/40 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white ml-0.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </span>
+        </span>
+        <div class="absolute bottom-2 left-2 right-2">
+          <p class="text-white text-xs font-semibold clamp-2">${v.title}</p>
+          ${v.views ? `<span class="text-[10px] font-mono text-white/70">${v.views}</span>` : ''}
+        </div>
+      `;
+      trackEl.appendChild(a);
+    });
+  }
+
+  async function loadVideos() {
+    const { data, error } = await sb.from('videos').select('*').order('created_at', { ascending: false }).limit(10);
+    if (error) { console.error('Supabase xatosi (videos):', error.message); renderVideos([]); return; }
+    renderVideos(data || []);
+  }
+
+  // ================= DYNAMIC PHOTO REPORTS FROM SUPABASE =================
+  function renderPhotoReports(list) {
+    const grid = document.getElementById('photo-grid');
+    grid.innerHTML = '';
+    photoGalleries = list.map(r => ({
+      title: r.title,
+      images: r.images.split('\n').map(s => s.trim()).filter(Boolean),
+    }));
+    if (!list.length) {
+      grid.innerHTML = `<p class="col-span-2 md:col-span-4 text-sm text-ink2 dark:text-paper2/60">${t('no_photos')} <code>/admin.html</code></p>`;
+      return;
+    }
+    list.slice(0, 5).forEach((r, i) => {
+      const images = photoGalleries[i].images;
+      const btn = document.createElement('button');
+      btn.className = i === 0
+        ? 'photo-item col-span-2 row-span-2 relative rounded-2xl overflow-hidden group text-left'
+        : 'photo-item relative rounded-2xl overflow-hidden group text-left';
+      const moreCount = (i === 4 && list.length > 5) ? list.length - 5 : 0;
+      btn.innerHTML = i === 0 ? `
+        <img src="${images[0]}" alt="${r.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+        <div class="absolute bottom-4 left-4 right-4">
+          <span class="inline-flex items-center gap-1.5 bg-black/60 text-white text-[11px] font-mono px-2 py-1 rounded-full mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="14" rx="2"/><circle cx="12" cy="13" r="3"/><path d="M8 6l1.5-3h5L16 6"/></svg>
+            ${t('photo_count', images.length)}
+          </span>
+          <p class="text-white font-display font-semibold text-lg leading-snug">${r.title}</p>
+        </div>
+      ` : `
+        <img src="${images[0]}" alt="${r.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+        <div class="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition"></div>
+        <p class="absolute bottom-2 left-2 right-2 text-white text-xs font-semibold clamp-2">${r.title}</p>
+        ${moreCount > 0 ? `<div class="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition flex items-center justify-center"><span class="text-white font-display font-bold text-lg">+${moreCount}</span></div>` : ''}
+      `;
+      btn.addEventListener('click', () => openLightbox(i, 0));
+      grid.appendChild(btn);
+    });
+  }
+
+  async function loadPhotos() {
+    const { data, error } = await sb.from('photo_reports').select('*').order('created_at', { ascending: false }).limit(6);
+    if (error) { console.error('Supabase xatosi (photo_reports):', error.message); renderPhotoReports([]); return; }
+    renderPhotoReports(data || []);
+  }
+
+  trackVisit();
+  loadArticles();
+  loadVideos();
+  loadPhotos();
+</script>
+
+</body>
+</html>
