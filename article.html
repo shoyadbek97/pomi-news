@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pomi.uz</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          paper: '#EAEDF0', paper2: '#DCE1E4',
+          ink: '#0F172A', ink2: '#4B5567',
+          signal: '#E23F26', amber: '#F2A93B', teal: '#146B5F',
+          inkbg: '#0B111D', surfacedark: '#131B2B', borderdark: '#232D40',
+        },
+        fontFamily: {
+          display: ['Fraunces', 'serif'],
+          body: ['Inter', 'sans-serif'],
+          mono: ['"IBM Plex Mono"', 'monospace'],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  ::selection { background: #E23F26; color: #fff; }
+  .article-body p { margin-bottom: 1.25rem; line-height: 1.85; }
+  .article-body p:last-child { margin-bottom: 0; }
+</style>
+</head>
+
+<body class="bg-paper text-ink dark:bg-inkbg dark:text-paper font-body transition-colors duration-300 min-h-screen">
+
+<!-- ===== HEADER ===== -->
+<div class="border-b border-ink/10 dark:border-borderdark">
+  <div class="max-w-3xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
+    <a href="/" class="font-display font-black text-2xl">POMI<span class="text-signal">.UZ</span></a>
+    <div class="flex items-center gap-2">
+      <div class="flex items-center gap-0.5 border border-ink/10 dark:border-borderdark rounded-full px-1 py-0.5">
+        <button data-lang="uz-lat" class="lang-btn px-2 py-0.5 rounded-full text-[11px] font-bold bg-ink text-white transition">Lot</button>
+        <button data-lang="uz-cyr" class="lang-btn px-2 py-0.5 rounded-full text-[11px] font-bold hover:bg-ink/5 dark:hover:bg-white/10 transition">Кир</button>
+        <a href="#" id="lang-ru" class="px-2 py-0.5 rounded-full text-[11px] font-bold hover:bg-ink/5 dark:hover:bg-white/10 transition">RU</a>
+        <a href="#" id="lang-en" class="px-2 py-0.5 rounded-full text-[11px] font-bold hover:bg-ink/5 dark:hover:bg-white/10 transition">EN</a>
+      </div>
+      <a href="/" class="text-sm font-medium text-ink2 dark:text-paper2/70 hover:text-signal transition flex items-center gap-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        Orqaga
+      </a>
+      <button id="theme-toggle" class="p-2 rounded-full hover:bg-ink/5 dark:hover:bg-white/10 transition">
+        <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ARTICLE ===== -->
+<main class="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
+
+  <!-- Loading -->
+  <div id="loader" class="text-center py-24">
+    <div class="w-8 h-8 border-2 border-signal border-t-transparent rounded-full animate-spin mx-auto"></div>
+    <p class="text-sm text-ink2 dark:text-paper2/60 mt-3">Yuklanmoqda...</p>
+  </div>
+
+  <!-- Error -->
+  <div id="error-view" class="hidden text-center py-24">
+    <p class="font-display text-2xl mb-2">Yangilik topilmadi</p>
+    <p class="text-ink2 dark:text-paper2/60 text-sm mb-6">Bunday yangilik mavjud emas yoki o'chirilgan.</p>
+    <a href="/" class="inline-block bg-signal text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-ink transition">Bosh sahifaga qaytish</a>
+  </div>
+
+  <!-- Article content -->
+  <article id="article-view" class="hidden">
+
+    <!-- Category + meta -->
+    <div class="flex items-center gap-2 mb-4">
+      <span id="art-category" class="text-[11px] font-bold uppercase tracking-wider bg-signal text-white px-3 py-1 rounded-full"></span>
+      <span class="text-xs font-mono text-ink2 dark:text-paper2/50" id="art-time"></span>
+      <span class="flex items-center gap-1 text-xs font-mono text-ink2 dark:text-paper2/50">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span id="art-views">0</span>
+      </span>
+    </div>
+
+    <!-- Title -->
+    <h1 id="art-title" class="font-display font-bold text-2xl md:text-4xl leading-tight mb-4"></h1>
+
+    <!-- Excerpt -->
+    <p id="art-excerpt" class="text-base md:text-lg text-ink2 dark:text-paper2/70 leading-relaxed mb-6 font-medium"></p>
+
+    <!-- Author -->
+    <div class="flex items-center gap-2 mb-6 pb-6 border-b border-ink/10 dark:border-borderdark">
+      <div class="w-8 h-8 rounded-full bg-signal/10 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-signal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <span id="art-author" class="text-sm font-medium"></span>
+    </div>
+
+    <!-- Hero image -->
+    <img id="art-image" src="" alt="" class="w-full rounded-2xl object-cover max-h-[480px] mb-8 hidden">
+
+    <!-- Full content -->
+    <div id="art-content" class="article-body text-base md:text-lg leading-relaxed text-ink dark:text-paper/90"></div>
+
+    <!-- Share -->
+    <div class="mt-10 pt-6 border-t border-ink/10 dark:border-borderdark">
+      <p class="text-sm font-semibold mb-3">Ulashish:</p>
+      <div class="flex items-center gap-2 flex-wrap">
+        <a id="share-telegram" href="#" target="_blank" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#229ED9] text-white text-sm font-medium hover:opacity-90 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+          Telegram
+        </a>
+        <button id="share-copy" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-ink/15 dark:border-borderdark text-sm font-medium hover:bg-ink/5 dark:hover:bg-white/10 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          Havola nusxalash
+        </button>
+      </div>
+    </div>
+
+    <!-- Related articles -->
+    <div class="mt-12">
+      <h2 class="font-display font-bold text-xl mb-4">Shuningdek o'qing</h2>
+      <div id="related-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+    </div>
+
+  </article>
+</main>
+
+<script>
+  // Dark mode
+  const html = document.documentElement;
+  const setTheme = (dark) => {
+    html.classList.toggle('dark', dark);
+    document.getElementById('icon-sun').classList.toggle('hidden', dark);
+    document.getElementById('icon-moon').classList.toggle('hidden', !dark);
+  };
+  setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.getElementById('theme-toggle').addEventListener('click', () => setTheme(!html.classList.contains('dark')));
+
+  // ================= LOTIN ↔ KIRILL + RU/EN (bosh sahifadagi bilan bir xil) =================
+  const LAT_TO_CYR = [
+    ['SH','Ш'],['CH','Ч'],['NG','НГ'],['SH','Ш'],
+    ["O'","Ў"],["G'","Ғ"],["O'","Ў"],["G'","Ғ"],
+    ['sh','ш'],['ch','ч'],['ng','нг'],
+    ["o'","ў"],["g'","ғ"],["oʻ","ў"],["gʻ","ғ"],
+    ['A','А'],['B','Б'],['D','Д'],['E','Е'],['F','Ф'],
+    ['G','Г'],['H','Ҳ'],['I','И'],['J','Ж'],['K','К'],
+    ['L','Л'],['M','М'],['N','Н'],['O','О'],['P','П'],
+    ['Q','Қ'],['R','Р'],['S','С'],['T','Т'],['U','У'],
+    ['V','В'],['X','Х'],['Y','Й'],['Z','З'],
+    ['a','а'],['b','б'],['d','д'],['e','е'],['f','ф'],
+    ['g','г'],['h','ҳ'],['i','и'],['j','ж'],['k','к'],
+    ['l','л'],['m','м'],['n','н'],['o','о'],['p','п'],
+    ['q','қ'],['r','р'],['s','с'],['t','т'],['u','у'],
+    ['v','в'],['x','х'],['y','й'],['z','з'],
+  ];
+
+  function convertText(text, table) {
+    let result = text;
+    for (const [from, to] of table) result = result.split(from).join(to);
+    return result;
+  }
+
+  // Bosh sahifada saqlangan til tanlovini shu yerda ham o'qib olamiz
+  let currentScript = localStorage.getItem('pomi-script') || 'uz-lat';
+  const originalTexts = new Map();
+
+  function saveOriginal(el) {
+    if (!originalTexts.has(el)) originalTexts.set(el, el.textContent);
+  }
+
+  function applyScript(script) {
+    currentScript = script;
+    const selectors = 'h1,h2,h3,p,a,span,button,li,div[class*="font-display"],div[class*="font-body"]';
+    document.querySelectorAll(selectors).forEach(el => {
+      if (el.children.length > 0 && !el.closest('.article-body')) return;
+      saveOriginal(el);
+      const orig = originalTexts.get(el) || el.textContent;
+      if (script === 'uz-lat') {
+        el.textContent = orig;
+      } else if (script === 'uz-cyr') {
+        el.textContent = convertText(orig, LAT_TO_CYR);
+      }
+    });
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      const active = btn.dataset.lang === script;
+      btn.classList.toggle('bg-ink', active);
+      btn.classList.toggle('text-white', active);
+      btn.classList.toggle('dark:bg-paper', active);
+      btn.classList.toggle('dark:text-ink', active);
+    });
+    localStorage.setItem('pomi-script', script);
+  }
+
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyScript(btn.dataset.lang));
+  });
+  document.getElementById('lang-ru').addEventListener('click', (e) => {
+    e.preventDefault();
+    window.open(`https://translate.google.com/translate?sl=uz&tl=ru&u=${encodeURIComponent(location.href)}`, '_blank');
+  });
+  document.getElementById('lang-en').addEventListener('click', (e) => {
+    e.preventDefault();
+    window.open(`https://translate.google.com/translate?sl=uz&tl=en&u=${encodeURIComponent(location.href)}`, '_blank');
+  });
+
+  // Header/orqaga kabi statik matnlarni darhol joriy tilga o'giradi
+  applyScript(currentScript);
+
+  // Helpers
+  function timeAgo(dateStr) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'hozirgina';
+    if (mins < 60) return `${mins} daqiqa oldin`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} soat oldin`;
+    return `${Math.floor(hours / 24)} kun oldin`;
+  }
+  function formatViews(n) {
+    if (!n) return '0';
+    if (n >= 1000000) return (n/1000000).toFixed(1).replace('.0','') + ' mln';
+    if (n >= 1000) return (n/1000).toFixed(1).replace('.0','') + ' ming';
+    return n.toString();
+  }
+
+  // Load article
+  const params = new URLSearchParams(location.search);
+  const articleId = params.get('id');
+
+  // "https://youtu.be/ID", "https://www.youtube.com/watch?v=ID",
+  // "https://www.youtube.com/shorts/ID" kabi havolalarni embed formatga o'giradi.
+  function getYouTubeEmbedUrl(rawUrl) {
+    try {
+      const u = new URL(rawUrl);
+      let id = '';
+      if (u.hostname.includes('youtu.be')) {
+        id = u.pathname.slice(1);
+      } else if (u.hostname.includes('youtube.com')) {
+        if (u.pathname === '/watch') id = u.searchParams.get('v');
+        else if (u.pathname.startsWith('/embed/')) id = u.pathname.split('/embed/')[1];
+        else if (u.pathname.startsWith('/shorts/')) id = u.pathname.split('/shorts/')[1];
+      }
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Har bir qatorni [rasm: URL] / [video: URL] belgisiga qarab rasm, video yoki oddiy paragraf sifatida chiqaradi.
+  function renderContentLine(line) {
+    const imgMatch = line.match(/^\[rasm:\s*(.+)\]$/i);
+    if (imgMatch) {
+      const src = imgMatch[1].trim();
+      return `<img src="${src}" alt="" class="w-full rounded-xl my-6" loading="lazy">`;
+    }
+    const videoMatch = line.match(/^\[video:\s*(.+)\]$/i);
+    if (videoMatch) {
+      const videoUrl = videoMatch[1].trim();
+      const embedUrl = getYouTubeEmbedUrl(videoUrl);
+      if (embedUrl) {
+        return `<div class="relative w-full aspect-video rounded-xl overflow-hidden my-6"><iframe class="absolute inset-0 w-full h-full" src="${embedUrl}" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+      }
+      return `<a href="${videoUrl}" target="_blank" rel="noopener" class="block my-6 px-4 py-3 rounded-xl border border-ink/15 dark:border-borderdark text-signal font-medium hover:bg-ink/5 dark:hover:bg-white/5 transition">▶ Videoni ko'rish</a>`;
+    }
+    return `<p>${line}</p>`;
+  }
+
+  async function loadArticle() {
+    if (!articleId) { showError(); return; }
+
+    const { data, error } = await sb.from('articles').select('*').eq('id', articleId).single();
+    if (error || !data) { showError(); return; }
+
+    // Increment views
+    await sb.rpc('increment_article_views', { article_id: Number(articleId) });
+
+    // Fill in fields
+    document.title = data.title + ' — Pomi.uz';
+    document.getElementById('art-category').textContent = data.category;
+    document.getElementById('art-time').textContent = timeAgo(data.created_at);
+    document.getElementById('art-views').textContent = formatViews((data.views || 0) + 1);
+    document.getElementById('art-title').textContent = data.title;
+    document.getElementById('art-author').textContent = data.author || 'Tahririyat';
+
+    if (data.excerpt) {
+      document.getElementById('art-excerpt').textContent = data.excerpt;
+    }
+
+    if (data.image_url) {
+      const img = document.getElementById('art-image');
+      img.src = data.image_url;
+      img.alt = data.title;
+      img.classList.remove('hidden');
+    }
+
+    // Full content — paragraphs, with inline [rasm: URL] va [video: URL] belgilari
+    if (data.content) {
+      const contentEl = document.getElementById('art-content');
+      const lines = data.content.split('\n').map(l => l.trim()).filter(Boolean);
+      contentEl.innerHTML = lines.map(renderContentLine).join('');
+    }
+
+    // Share buttons
+    const url = encodeURIComponent(location.href);
+    const title = encodeURIComponent(data.title);
+    document.getElementById('share-telegram').href = `https://t.me/share/url?url=${url}&text=${title}`;
+    document.getElementById('share-copy').addEventListener('click', () => {
+      navigator.clipboard.writeText(location.href);
+      document.getElementById('share-copy').textContent = 'Nusxalandi ✓';
+      setTimeout(() => document.getElementById('share-copy').innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> Havola nusxalash`, 2000);
+    });
+
+    // Related articles
+    const { data: related } = await sb.from('articles')
+      .select('id, title, image_url, category, created_at')
+      .eq('category', data.category)
+      .neq('id', articleId)
+      .order('created_at', { ascending: false })
+      .limit(4);
+
+    if (related && related.length) {
+      const relEl = document.getElementById('related-list');
+      related.forEach(r => {
+        const card = document.createElement('a');
+        card.href = `/article.html?id=${r.id}`;
+        card.className = 'flex gap-3 rounded-xl border border-ink/10 dark:border-borderdark bg-white dark:bg-surfacedark p-3 hover:border-signal transition';
+        card.innerHTML = `
+          <img src="${r.image_url || `https://picsum.photos/seed/art${r.id}/120/90`}" alt="" class="w-20 h-16 rounded-lg object-cover shrink-0">
+          <div class="min-w-0">
+            <span class="text-[10px] font-bold uppercase tracking-wide text-signal">${r.category}</span>
+            <p class="font-display font-semibold text-sm leading-snug mt-0.5 line-clamp-2">${r.title}</p>
+            <span class="text-[11px] font-mono text-ink2 dark:text-paper2/50">${timeAgo(r.created_at)}</span>
+          </div>
+        `;
+        relEl.appendChild(card);
+      });
+    } else {
+      document.querySelector('.mt-12').classList.add('hidden');
+    }
+
+    // Maqola matni endigina DOM'ga tushdi — joriy tanlangan tilni (masalan, kirill) shu yerga ham qo'llaymiz
+    applyScript(currentScript);
+
+    document.getElementById('loader').classList.add('hidden');
+    document.getElementById('article-view').classList.remove('hidden');
+  }
+
+  function showError() {
+    document.getElementById('loader').classList.add('hidden');
+    document.getElementById('error-view').classList.remove('hidden');
+  }
+
+  loadArticle();
+</script>
+</body>
+</html>
